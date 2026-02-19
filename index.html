@@ -72,14 +72,17 @@
   .btn-primary:hover { background: #7aa3ff; transform: translateY(-2px); box-shadow: 0 8px 32px rgba(91,140,255,.45); }
 
   .btn-subject {
-    width: 100%; padding: 20px 28px; border-radius: var(--radius);
+    width: 100%; padding: 18px 22px; border-radius: var(--radius);
     background: var(--card); border: 2px solid var(--border);
     color: var(--text); font-family: 'Syne', sans-serif; font-weight: 700; font-size: 1.1rem;
     cursor: pointer; transition: var(--transition); display: flex; align-items: center; gap: 14px;
-    text-align: left;
+    text-align: left; flex-wrap: nowrap;
   }
   .btn-subject:hover { border-color: var(--accent); background: rgba(91,140,255,.08); transform: translateX(6px); }
-  .btn-subject .icon { font-size: 1.6rem; }
+  .btn-subject .icon { font-size: 1.6rem; flex-shrink: 0; }
+  .btn-subject .subj-info { flex: 1; min-width: 0; }
+  .btn-subject .subj-info .subj-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .btn-subject .subj-info .subj-desc { font-size:.8rem; color:var(--muted); font-weight:400; margin-top:2px; }
 
   /* ============================================================
      INTRO PAGE
@@ -247,6 +250,38 @@
   .toast.correct-toast { border-color: var(--accent3); color: var(--accent3); }
   .toast.wrong-toast { border-color: var(--accent2); color: var(--accent2); }
 
+  /* Return button */
+  .btn-return {
+    background: transparent; border: 2px solid var(--border); border-radius: 50px;
+    color: var(--muted); font-family: 'Syne', sans-serif; font-weight: 700; font-size: .85rem;
+    padding: 7px 16px; cursor: pointer; transition: var(--transition);
+  }
+  .btn-return:hover { border-color: var(--accent2); color: var(--accent2); }
+
+  /* High score badge on subject buttons */
+  .subj-best {
+    background: rgba(255,209,102,.12); border: 1px solid rgba(255,209,102,.3);
+    color: var(--gold); border-radius: 50px; padding: 5px 12px;
+    font-family: 'Syne', sans-serif; font-weight: 700; font-size: .78rem;
+    white-space: nowrap; text-align: center; flex-shrink: 0;
+    margin-left: auto;
+  }
+
+  /* Confirm return overlay */
+  .overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,.7); z-index: 200;
+    display: flex; align-items: center; justify-content: center;
+    animation: fadeIn .2s ease;
+  }
+  @keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
+  .overlay-box {
+    background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 36px 32px; max-width: 360px; width: 90%; text-align: center;
+  }
+  .overlay-box h2 { font-size: 1.2rem; margin-bottom: 10px; }
+  .overlay-box p { color: var(--muted); font-size: .9rem; margin-bottom: 24px; line-height: 1.6; }
+  .overlay-actions { display: flex; gap: 12px; justify-content: center; }
+
   /* Responsive */
   @media (max-width: 600px) {
     .game-header { flex-wrap: wrap; gap: 10px; }
@@ -288,21 +323,25 @@
     </div>
 
     <div class="subjects-grid">
-      <button class="btn-subject" onclick="startGame('Math')">
+      <button class="btn-subject" onclick="startGame('Math')" id="btn-subj-Math">
         <span class="icon">🔢</span>
-        <div><div>Mathematics</div><div style="font-size:.8rem;color:var(--muted);font-weight:400;margin-top:2px;">Numbers, patterns & logic</div></div>
+        <div style="flex:1"><div>Mathematics</div><div style="font-size:.8rem;color:var(--muted);font-weight:400;margin-top:2px;">Numbers, patterns & logic</div></div>
+        <div class="subj-best" id="best-Math" style="display:none"></div>
       </button>
-      <button class="btn-subject" onclick="startGame('Science')">
+      <button class="btn-subject" onclick="startGame('Science')" id="btn-subj-Science">
         <span class="icon">🔬</span>
-        <div><div>Science</div><div style="font-size:.8rem;color:var(--muted);font-weight:400;margin-top:2px;">The natural world & beyond</div></div>
+        <div style="flex:1"><div>Science</div><div style="font-size:.8rem;color:var(--muted);font-weight:400;margin-top:2px;">The natural world & beyond</div></div>
+        <div class="subj-best" id="best-Science" style="display:none"></div>
       </button>
-      <button class="btn-subject" onclick="startGame('History')">
+      <button class="btn-subject" onclick="startGame('History')" id="btn-subj-History">
         <span class="icon">🏛️</span>
-        <div><div>History</div><div style="font-size:.8rem;color:var(--muted);font-weight:400;margin-top:2px;">People, events & civilizations</div></div>
+        <div style="flex:1"><div>History</div><div style="font-size:.8rem;color:var(--muted);font-weight:400;margin-top:2px;">People, events & civilizations</div></div>
+        <div class="subj-best" id="best-History" style="display:none"></div>
       </button>
-      <button class="btn-subject" onclick="startGame('English')">
+      <button class="btn-subject" onclick="startGame('English')" id="btn-subj-English">
         <span class="icon">📝</span>
-        <div><div>English</div><div style="font-size:.8rem;color:var(--muted);font-weight:400;margin-top:2px;">Language, literature & grammar</div></div>
+        <div style="flex:1"><div>English</div><div style="font-size:.8rem;color:var(--muted);font-weight:400;margin-top:2px;">Language, literature & grammar</div></div>
+        <div class="subj-best" id="best-English" style="display:none"></div>
       </button>
     </div>
   </div>
@@ -314,6 +353,7 @@
 <div id="page-game" class="page">
   <!-- Sticky header -->
   <div class="game-header">
+    <button class="btn-return" onclick="confirmReturn()">&#8592; Return</button>
     <div class="subject-label" id="hdr-subject">Math</div>
     <div class="game-meta">
       <span class="q-counter" id="hdr-q-counter">Q 1/15</span>
@@ -889,10 +929,57 @@ function showResults() {
 
   // Progress bar full
   document.getElementById('progress-fill').style.width = '100%';
+  updateHighScoreBadges();
 }
 
-function playAgainSame() { startGame(state.subject); }
-function goHome() { clearInterval(state.timer); showPage('intro'); }
+function playAgainSame() { updateHighScoreBadges(); startGame(state.subject); }
+function goHome() { clearInterval(state.timer); updateHighScoreBadges(); showPage('intro'); }
+
+/* ================================================================
+   RETURN BUTTON — confirm dialog
+================================================================ */
+function confirmReturn() {
+  const overlay = document.createElement('div');
+  overlay.className = 'overlay';
+  overlay.id = 'return-overlay';
+  overlay.innerHTML = `
+    <div class="overlay-box">
+      <h2>⚠️ Return to Menu?</h2>
+      <p>Your current progress and score will be lost. Are you sure you want to go back?</p>
+      <div class="overlay-actions">
+        <button class="btn" style="background:var(--card);border:2px solid var(--border);" onclick="closeOverlay()">Keep Playing</button>
+        <button class="btn btn-primary" onclick="doReturn()">Yes, Return</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+}
+
+function closeOverlay() {
+  const o = document.getElementById('return-overlay');
+  if (o) o.remove();
+}
+
+function doReturn() {
+  clearInterval(state.timer);
+  closeOverlay();
+  updateHighScoreBadges();
+  goHome();
+}
+
+/* ================================================================
+   HIGH SCORE BADGES on intro page
+================================================================ */
+function updateHighScoreBadges() {
+  ['Math','Science','History','English'].forEach(subj => {
+    const el = document.getElementById('best-' + subj);
+    if (!el) return;
+    const best = state.bestScores[subj];
+    if (best !== undefined) {
+      el.style.display = 'block';
+      el.textContent = '🏆 Best: ' + best + '/15';
+    }
+  });
+}
 </script>
 </body>
 </html>
