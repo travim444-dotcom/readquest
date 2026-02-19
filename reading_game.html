@@ -1,0 +1,898 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ReadQuest – Reading Comprehension Game</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  /* ============================================================
+     GLOBAL / VARIABLES
+  ============================================================ */
+  :root {
+    --bg:        #0d0f1a;
+    --surface:   #161929;
+    --card:      #1e2236;
+    --border:    #2e3454;
+    --accent:    #5b8cff;
+    --accent2:   #ff6b9d;
+    --accent3:   #00e5c0;
+    --gold:      #ffd166;
+    --text:      #e8ecff;
+    --muted:     #7880a4;
+    --radius:    18px;
+    --transition: 0.25s cubic-bezier(.4,0,.2,1);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Background stars */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background:
+      radial-gradient(ellipse 80% 60% at 20% 10%, rgba(91,140,255,.12) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 50% at 80% 90%, rgba(255,107,157,.10) 0%, transparent 60%);
+    pointer-events: none; z-index: 0;
+  }
+
+  .page { display: none; position: relative; z-index: 1; animation: fadeUp .4s ease; }
+  .page.active { display: block; }
+
+  @keyframes fadeUp {
+    from { opacity:0; transform: translateY(20px); }
+    to   { opacity:1; transform: translateY(0); }
+  }
+
+  h1,h2,h3 { font-family: 'Syne', sans-serif; }
+
+  .container { max-width: 860px; margin: 0 auto; padding: 24px 20px; }
+
+  /* ============================================================
+     BUTTONS
+  ============================================================ */
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    padding: 14px 28px; border-radius: 50px; border: none; cursor: pointer;
+    font-family: 'Syne', sans-serif; font-weight: 700; font-size: .95rem;
+    transition: var(--transition); text-decoration: none;
+  }
+  .btn-primary {
+    background: var(--accent); color: #fff;
+    box-shadow: 0 4px 24px rgba(91,140,255,.35);
+  }
+  .btn-primary:hover { background: #7aa3ff; transform: translateY(-2px); box-shadow: 0 8px 32px rgba(91,140,255,.45); }
+
+  .btn-subject {
+    width: 100%; padding: 20px 28px; border-radius: var(--radius);
+    background: var(--card); border: 2px solid var(--border);
+    color: var(--text); font-family: 'Syne', sans-serif; font-weight: 700; font-size: 1.1rem;
+    cursor: pointer; transition: var(--transition); display: flex; align-items: center; gap: 14px;
+    text-align: left;
+  }
+  .btn-subject:hover { border-color: var(--accent); background: rgba(91,140,255,.08); transform: translateX(6px); }
+  .btn-subject .icon { font-size: 1.6rem; }
+
+  /* ============================================================
+     INTRO PAGE
+  ============================================================ */
+  #page-intro { min-height: 100vh; }
+
+  .intro-hero {
+    text-align: center; padding: 60px 0 40px;
+  }
+  .intro-hero .badge {
+    display: inline-block; background: rgba(91,140,255,.15); border: 1px solid rgba(91,140,255,.3);
+    color: var(--accent); border-radius: 50px; padding: 6px 18px; font-size: .8rem;
+    font-family: 'Syne', sans-serif; font-weight: 600; letter-spacing: .08em; margin-bottom: 20px;
+  }
+  .intro-hero h1 {
+    font-size: clamp(2.4rem, 6vw, 4rem); font-weight: 800; line-height: 1.1;
+    background: linear-gradient(135deg, #fff 30%, var(--accent) 70%, var(--accent2));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    margin-bottom: 16px;
+  }
+  .intro-hero p { color: var(--muted); font-size: 1.05rem; max-width: 480px; margin: 0 auto 36px; line-height: 1.6; }
+
+  .instructions-card {
+    background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 28px; margin-bottom: 40px;
+  }
+  .instructions-card h2 { font-size: 1rem; color: var(--accent3); margin-bottom: 16px; letter-spacing: .1em; }
+  .instruction-row { display: flex; align-items: flex-start; gap: 14px; margin-bottom: 14px; }
+  .instruction-row:last-child { margin-bottom: 0; }
+  .instr-num {
+    width: 28px; height: 28px; border-radius: 50%; background: rgba(91,140,255,.2);
+    color: var(--accent); font-family: 'Syne',sans-serif; font-weight: 700; font-size: .85rem;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 2px;
+  }
+  .instruction-row p { color: var(--muted); font-size: .95rem; line-height: 1.6; }
+  .instruction-row p strong { color: var(--text); }
+
+  .subjects-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; margin-bottom: 40px; }
+
+  /* ============================================================
+     GAME PAGE
+  ============================================================ */
+  #page-game { min-height: 100vh; }
+
+  .game-header {
+    display: flex; align-items: center; justify-content: space-between;
+    background: var(--card); border-bottom: 1px solid var(--border);
+    padding: 14px 24px; position: sticky; top: 0; z-index: 10;
+    backdrop-filter: blur(12px);
+  }
+  .game-header .subject-label {
+    font-family: 'Syne', sans-serif; font-weight: 700; font-size: .9rem; color: var(--accent);
+  }
+  .game-meta { display: flex; align-items: center; gap: 20px; }
+  .q-counter { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 1rem; color: var(--text); }
+  .score-display { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 1rem; color: var(--gold); }
+
+  .timer-wrap { display: flex; align-items: center; gap: 8px; }
+  .timer-icon { font-size: 1rem; }
+  .timer-val { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 1rem; color: var(--accent3); }
+  .timer-val.warning { color: var(--accent2); animation: pulse .6s infinite; }
+  @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:.5; } }
+
+  /* Progress bar */
+  .progress-track {
+    height: 5px; background: var(--border); position: relative;
+  }
+  .progress-fill {
+    height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent2));
+    transition: width .5s cubic-bezier(.4,0,.2,1); border-radius: 0 3px 3px 0;
+  }
+
+  .game-body { padding: 28px 0 40px; }
+
+  /* Paragraph */
+  .paragraph-card {
+    background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 28px; margin-bottom: 28px; position: relative; overflow: hidden;
+  }
+  .paragraph-card::before {
+    content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px;
+    background: linear-gradient(180deg, var(--accent), var(--accent2));
+  }
+  .paragraph-card h3 { font-size: .75rem; color: var(--muted); letter-spacing: .12em; margin-bottom: 12px; }
+  .paragraph-card p { line-height: 1.75; font-size: .97rem; color: var(--text); }
+
+  /* Questions */
+  .question-card {
+    background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 24px; margin-bottom: 16px;
+  }
+  .question-text { font-family: 'Syne', sans-serif; font-weight: 600; font-size: 1rem; margin-bottom: 16px; line-height: 1.5; }
+
+  .answers-grid { display: grid; gap: 10px; }
+  .answer-btn {
+    display: flex; align-items: center; gap: 12px;
+    background: var(--surface); border: 2px solid var(--border); border-radius: 12px;
+    padding: 12px 16px; cursor: pointer; transition: var(--transition); color: var(--text);
+    font-family: 'DM Sans', sans-serif; font-size: .95rem; text-align: left;
+  }
+  .answer-btn:hover:not(:disabled) { border-color: var(--accent); background: rgba(91,140,255,.08); }
+  .answer-btn .letter {
+    width: 28px; height: 28px; border-radius: 50%; background: rgba(255,255,255,.07);
+    font-family: 'Syne', sans-serif; font-weight: 700; font-size: .8rem; color: var(--muted);
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .answer-btn.selected { border-color: var(--accent); background: rgba(91,140,255,.12); }
+  .answer-btn.selected .letter { background: var(--accent); color: #fff; }
+  .answer-btn.correct { border-color: var(--accent3); background: rgba(0,229,192,.1); }
+  .answer-btn.correct .letter { background: var(--accent3); color: #0d0f1a; }
+  .answer-btn.wrong { border-color: var(--accent2); background: rgba(255,107,157,.1); }
+  .answer-btn.wrong .letter { background: var(--accent2); color: #fff; }
+  .answer-btn:disabled { cursor: default; }
+
+  .next-wrap { text-align: center; margin-top: 28px; }
+
+  /* ============================================================
+     RESULTS PAGE
+  ============================================================ */
+  #page-results { min-height: 100vh; }
+
+  .results-hero { text-align: center; padding: 48px 0 28px; }
+  .medal { font-size: 6rem; display: block; margin-bottom: 12px; animation: medalDrop .6s cubic-bezier(.34,1.56,.64,1); }
+  @keyframes medalDrop { from { opacity:0; transform: scale(0) rotate(-20deg); } to { opacity:1; transform: scale(1) rotate(0); } }
+
+  .results-hero h1 { font-size: 2rem; font-weight: 800; margin-bottom: 8px; }
+  .results-hero .advice { color: var(--muted); font-size: 1rem; max-width: 420px; margin: 0 auto 16px; line-height: 1.6; }
+  .subject-tag {
+    display: inline-block; padding: 5px 16px; border-radius: 50px;
+    background: rgba(91,140,255,.15); border: 1px solid rgba(91,140,255,.3);
+    color: var(--accent); font-family: 'Syne', sans-serif; font-weight: 700; font-size: .85rem;
+  }
+
+  .results-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; margin: 32px 0; }
+  .stat-card {
+    background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 20px; text-align: center;
+  }
+  .stat-card .stat-label { font-size: .75rem; color: var(--muted); letter-spacing: .1em; margin-bottom: 8px; }
+  .stat-card .stat-val { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.8rem; }
+  .stat-card.highlight { border-color: var(--gold); }
+  .stat-card.highlight .stat-val { color: var(--gold); }
+  .stat-card.good .stat-val { color: var(--accent3); }
+  .stat-card.bad .stat-val { color: var(--accent2); }
+
+  .grade-badge {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 64px; height: 64px; border-radius: 50%; font-family: 'Syne', sans-serif;
+    font-weight: 800; font-size: 1.6rem; margin: 0 auto;
+  }
+
+  .results-actions { text-align: center; display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; padding-bottom: 48px; }
+
+  /* ============================================================
+     FEEDBACK TOAST
+  ============================================================ */
+  .toast {
+    position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(80px);
+    background: var(--card); border: 1px solid var(--border); border-radius: 50px;
+    padding: 12px 24px; font-family: 'Syne', sans-serif; font-weight: 600; font-size: .9rem;
+    z-index: 100; transition: transform .35s cubic-bezier(.34,1.56,.64,1), opacity .35s;
+    opacity: 0; pointer-events: none;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+  .toast.correct-toast { border-color: var(--accent3); color: var(--accent3); }
+  .toast.wrong-toast { border-color: var(--accent2); color: var(--accent2); }
+
+  /* Responsive */
+  @media (max-width: 600px) {
+    .game-header { flex-wrap: wrap; gap: 10px; }
+    .game-meta { gap: 12px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ============================================================
+     PAGE: INTRO
+============================================================ -->
+<div id="page-intro" class="page active">
+  <div class="container">
+    <div class="intro-hero">
+      <span class="badge">📖 READING COMPREHENSION</span>
+      <h1>ReadQuest</h1>
+      <p>Read, understand, and conquer — test your comprehension across four exciting subjects!</p>
+    </div>
+
+    <div class="instructions-card">
+      <h2>⚡ HOW TO PLAY</h2>
+      <div class="instruction-row">
+        <div class="instr-num">1</div>
+        <p>Choose a <strong>subject</strong> below — Math, Science, History, or English.</p>
+      </div>
+      <div class="instruction-row">
+        <div class="instr-num">2</div>
+        <p>Read the <strong>paragraph</strong> carefully, then answer <strong>3 questions</strong> about it. Each question has <strong>3 answer choices</strong>.</p>
+      </div>
+      <div class="instruction-row">
+        <div class="instr-num">3</div>
+        <p>You have <strong>90 seconds per paragraph set</strong>. Answer all 3 questions before time runs out!</p>
+      </div>
+      <div class="instruction-row">
+        <div class="instr-num">4</div>
+        <p>Complete <strong>5 paragraphs</strong> (15 questions total). Try to get the highest score!</p>
+      </div>
+    </div>
+
+    <div class="subjects-grid">
+      <button class="btn-subject" onclick="startGame('Math')">
+        <span class="icon">🔢</span>
+        <div><div>Mathematics</div><div style="font-size:.8rem;color:var(--muted);font-weight:400;margin-top:2px;">Numbers, patterns & logic</div></div>
+      </button>
+      <button class="btn-subject" onclick="startGame('Science')">
+        <span class="icon">🔬</span>
+        <div><div>Science</div><div style="font-size:.8rem;color:var(--muted);font-weight:400;margin-top:2px;">The natural world & beyond</div></div>
+      </button>
+      <button class="btn-subject" onclick="startGame('History')">
+        <span class="icon">🏛️</span>
+        <div><div>History</div><div style="font-size:.8rem;color:var(--muted);font-weight:400;margin-top:2px;">People, events & civilizations</div></div>
+      </button>
+      <button class="btn-subject" onclick="startGame('English')">
+        <span class="icon">📝</span>
+        <div><div>English</div><div style="font-size:.8rem;color:var(--muted);font-weight:400;margin-top:2px;">Language, literature & grammar</div></div>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     PAGE: GAME
+============================================================ -->
+<div id="page-game" class="page">
+  <!-- Sticky header -->
+  <div class="game-header">
+    <div class="subject-label" id="hdr-subject">Math</div>
+    <div class="game-meta">
+      <span class="q-counter" id="hdr-q-counter">Q 1/15</span>
+      <span class="score-display" id="hdr-score">Score: 0/0</span>
+      <div class="timer-wrap">
+        <span class="timer-icon">⏱️</span>
+        <span class="timer-val" id="timer-display">180</span>
+      </div>
+    </div>
+  </div>
+  <!-- Progress bar -->
+  <div class="progress-track"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+
+  <div class="container game-body">
+    <div class="paragraph-card">
+      <h3>📄 READ CAREFULLY</h3>
+      <p id="para-text">Loading paragraph…</p>
+    </div>
+
+    <div id="questions-container"></div>
+
+    <div class="next-wrap">
+      <button class="btn btn-primary" id="btn-next" onclick="nextRound()" disabled>
+        Next &rarr;
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     PAGE: RESULTS
+============================================================ -->
+<div id="page-results" class="page">
+  <div class="container">
+    <div class="results-hero">
+      <span class="medal" id="medal">🥇</span>
+      <h1 id="result-title">Amazing!</h1>
+      <p class="advice" id="result-advice">You're a reading champion!</p>
+      <span class="subject-tag" id="result-subject">Math</span>
+    </div>
+
+    <div class="results-grid">
+      <div class="stat-card highlight">
+        <div class="stat-label">SCORE</div>
+        <div class="stat-val" id="res-score">0/15</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">BEST SCORE</div>
+        <div class="stat-val" id="res-best">0/15</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">PERCENTAGE</div>
+        <div class="stat-val" id="res-pct">0%</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">GRADE</div>
+        <div class="stat-val" id="res-grade">
+          <div class="grade-badge" id="res-grade-badge">F</div>
+        </div>
+      </div>
+      <div class="stat-card good">
+        <div class="stat-label">CORRECT ✅</div>
+        <div class="stat-val" id="res-correct">0</div>
+      </div>
+      <div class="stat-card bad">
+        <div class="stat-label">INCORRECT ❌</div>
+        <div class="stat-val" id="res-wrong">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">ACCURACY</div>
+        <div class="stat-val" id="res-accuracy">0%</div>
+      </div>
+    </div>
+
+    <div class="results-actions">
+      <button class="btn btn-primary" onclick="playAgainSame()">🔄 Play Again</button>
+      <button class="btn" style="background:var(--card);border:2px solid var(--border);" onclick="goHome()">🏠 Choose Subject</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<!-- ============================================================
+     QUESTION BANK
+============================================================ -->
+<script>
+/* ================================================================
+   DATA — 5 sets per subject, each set: { paragraph, questions[] }
+   Each question: { q, answers: [{text, correct}] }
+================================================================ */
+const QUESTION_BANK = {
+
+  Math: [
+    {
+      paragraph: "Fractions represent parts of a whole. The number on top is called the numerator, and the number on the bottom is called the denominator. To add fractions with the same denominator, you simply add the numerators together and keep the denominator the same. For example, 1/4 + 2/4 = 3/4. However, when denominators are different, you must first find a common denominator before adding.",
+      questions: [
+        { q: "What is the name of the number at the bottom of a fraction?",
+          answers: [{ text: "Numerator", correct: false }, { text: "Denominator", correct: true }, { text: "Quotient", correct: false }] },
+        { q: "What is 2/5 + 1/5?",
+          answers: [{ text: "3/10", correct: false }, { text: "3/5", correct: true }, { text: "2/5", correct: false }] },
+        { q: "What must you do before adding fractions with different denominators?",
+          answers: [{ text: "Multiply the numerators", correct: false }, { text: "Subtract the denominators", correct: false }, { text: "Find a common denominator", correct: true }] }
+      ]
+    },
+    {
+      paragraph: "The Pythagorean theorem states that in a right triangle, the square of the hypotenuse equals the sum of the squares of the other two sides. This is written as a² + b² = c², where c is the hypotenuse — the side opposite the right angle and always the longest side. This theorem was famously proven and used by ancient Greek mathematician Pythagoras around 570 BC.",
+      questions: [
+        { q: "What does 'c' represent in the Pythagorean theorem?",
+          answers: [{ text: "The shortest side", correct: false }, { text: "The hypotenuse", correct: true }, { text: "Any side of the triangle", correct: false }] },
+        { q: "If a = 3 and b = 4, what is c?",
+          answers: [{ text: "5", correct: true }, { text: "7", correct: false }, { text: "12", correct: false }] },
+        { q: "Who is the Pythagorean theorem named after?",
+          answers: [{ text: "Aristotle", correct: false }, { text: "Euclid", correct: false }, { text: "Pythagoras", correct: true }] }
+      ]
+    },
+    {
+      paragraph: "Prime numbers are whole numbers greater than 1 that have no divisors other than 1 and themselves. The number 2 is the only even prime number, because all other even numbers are divisible by 2. Numbers like 4, 6, 8 and 9 are called composite numbers because they have more than two factors. The first five prime numbers are 2, 3, 5, 7, and 11.",
+      questions: [
+        { q: "What makes a number a prime number?",
+          answers: [{ text: "It is divisible by 2", correct: false }, { text: "It has exactly two factors: 1 and itself", correct: true }, { text: "It is an odd number", correct: false }] },
+        { q: "Why is 2 special among prime numbers?",
+          answers: [{ text: "It is the smallest number", correct: false }, { text: "It is the only even prime number", correct: true }, { text: "It is divisible by 4", correct: false }] },
+        { q: "Which of these is a composite number?",
+          answers: [{ text: "7", correct: false }, { text: "11", correct: false }, { text: "9", correct: true }] }
+      ]
+    },
+    {
+      paragraph: "Percentages are a way of expressing a number as a fraction of 100. The word percent comes from the Latin 'per centum', meaning 'per hundred'. To convert a fraction to a percentage, divide the numerator by the denominator and multiply by 100. For example, 3/4 becomes 75% because 3 ÷ 4 = 0.75 × 100 = 75. Percentages are widely used in everyday life, such as sales discounts, interest rates, and test scores.",
+      questions: [
+        { q: "What does 'percent' literally mean?",
+          answers: [{ text: "Per thousand", correct: false }, { text: "Per hundred", correct: true }, { text: "Per ten", correct: false }] },
+        { q: "What is 1/2 as a percentage?",
+          answers: [{ text: "25%", correct: false }, { text: "75%", correct: false }, { text: "50%", correct: true }] },
+        { q: "Which of these is a real-world use of percentages?",
+          answers: [{ text: "Measuring weight in kilograms", correct: false }, { text: "Expressing a discount in a store", correct: true }, { text: "Naming geometric shapes", correct: false }] }
+      ]
+    },
+    {
+      paragraph: "The order of operations is a set of rules that tells us the sequence in which mathematical operations should be performed. The standard order, remembered by the acronym PEMDAS, stands for Parentheses, Exponents, Multiplication, Division, Addition, and Subtraction. For example, in the expression 2 + 3 × 4, you multiply first to get 12, then add 2, giving you 14 — not 20, which would be the wrong answer if you added first.",
+      questions: [
+        { q: "What does the 'P' in PEMDAS stand for?",
+          answers: [{ text: "Power", correct: false }, { text: "Parentheses", correct: true }, { text: "Plus", correct: false }] },
+        { q: "What is the correct answer to 2 + 3 × 4?",
+          answers: [{ text: "20", correct: false }, { text: "14", correct: true }, { text: "9", correct: false }] },
+        { q: "According to PEMDAS, what comes before addition?",
+          answers: [{ text: "Subtraction only", correct: false }, { text: "Nothing — addition goes first", correct: false }, { text: "Multiplication and division", correct: true }] }
+      ]
+    }
+  ],
+
+  Science: [
+    {
+      paragraph: "Photosynthesis is the process by which green plants, algae, and some bacteria use sunlight, water, and carbon dioxide to produce their own food in the form of glucose. This process takes place mainly in the chloroplasts of plant cells, where a green pigment called chlorophyll absorbs sunlight. Oxygen is released as a byproduct, which is why plants are crucial to life on Earth — they produce the oxygen that animals and humans breathe.",
+      questions: [
+        { q: "Where does photosynthesis mainly take place in a plant cell?",
+          answers: [{ text: "The nucleus", correct: false }, { text: "The chloroplast", correct: true }, { text: "The mitochondria", correct: false }] },
+        { q: "What is the byproduct of photosynthesis that animals need?",
+          answers: [{ text: "Carbon dioxide", correct: false }, { text: "Glucose", correct: false }, { text: "Oxygen", correct: true }] },
+        { q: "Which pigment in chloroplasts absorbs sunlight?",
+          answers: [{ text: "Melanin", correct: false }, { text: "Hemoglobin", correct: false }, { text: "Chlorophyll", correct: true }] }
+      ]
+    },
+    {
+      paragraph: "The water cycle, also known as the hydrological cycle, describes the continuous movement of water on, above, and below the surface of the Earth. The main stages include evaporation, condensation, precipitation, and collection. Water evaporates from the ocean and land into the atmosphere as water vapor, cools and condenses into clouds, then falls back to Earth as rain or snow. This cycle ensures the constant redistribution of freshwater across the planet.",
+      questions: [
+        { q: "What is another name for the water cycle?",
+          answers: [{ text: "Carbon cycle", correct: false }, { text: "Hydrological cycle", correct: true }, { text: "Nitrogen cycle", correct: false }] },
+        { q: "What happens to water vapor when it rises and cools?",
+          answers: [{ text: "It evaporates", correct: false }, { text: "It freezes into ice", correct: false }, { text: "It condenses into clouds", correct: true }] },
+        { q: "What is the stage when water falls back to Earth from clouds?",
+          answers: [{ text: "Evaporation", correct: false }, { text: "Precipitation", correct: true }, { text: "Collection", correct: false }] }
+      ]
+    },
+    {
+      paragraph: "The human digestive system breaks down food into nutrients that the body can use for energy, growth, and repair. Digestion begins in the mouth, where teeth break food into smaller pieces and saliva begins breaking down starches. From there, food travels down the esophagus to the stomach, where acids continue the breakdown. The small intestine absorbs most nutrients, while the large intestine absorbs water and eliminates waste.",
+      questions: [
+        { q: "Where does digestion begin?",
+          answers: [{ text: "The stomach", correct: false }, { text: "The small intestine", correct: false }, { text: "The mouth", correct: true }] },
+        { q: "What does the small intestine primarily do?",
+          answers: [{ text: "Store waste", correct: false }, { text: "Absorb nutrients", correct: true }, { text: "Produce saliva", correct: false }] },
+        { q: "What role does saliva play in digestion?",
+          answers: [{ text: "It breaks down fats", correct: false }, { text: "It begins breaking down starches", correct: true }, { text: "It absorbs water", correct: false }] }
+      ]
+    },
+    {
+      paragraph: "Newton's three laws of motion form the foundation of classical mechanics. The first law, the law of inertia, states that an object at rest stays at rest, and an object in motion stays in motion unless acted on by an external force. The second law states that force equals mass times acceleration (F = ma). The third law states that for every action there is an equal and opposite reaction — like a rocket expelling gas downward to propel itself upward.",
+      questions: [
+        { q: "What is Newton's first law also known as?",
+          answers: [{ text: "The law of gravity", correct: false }, { text: "The law of inertia", correct: true }, { text: "The law of acceleration", correct: false }] },
+        { q: "What does F = ma represent?",
+          answers: [{ text: "Newton's first law", correct: false }, { text: "Newton's third law", correct: false }, { text: "Newton's second law", correct: true }] },
+        { q: "A rocket moving upward by expelling gas downward is an example of which law?",
+          answers: [{ text: "The law of inertia", correct: false }, { text: "The law of gravity", correct: false }, { text: "Newton's third law", correct: true }] }
+      ]
+    },
+    {
+      paragraph: "Cells are the basic building blocks of all living things. There are two main types: prokaryotic cells, which lack a nucleus, and eukaryotic cells, which contain a nucleus enclosed in a membrane. Bacteria are prokaryotes, while animals, plants, and fungi are made of eukaryotic cells. Every cell contains genetic material (DNA) that controls the cell's activities. The cell membrane surrounds all cells and controls what goes in and out.",
+      questions: [
+        { q: "What distinguishes eukaryotic from prokaryotic cells?",
+          answers: [{ text: "Eukaryotic cells have no DNA", correct: false }, { text: "Eukaryotic cells have a nucleus enclosed in a membrane", correct: true }, { text: "Eukaryotic cells are smaller", correct: false }] },
+        { q: "What controls what enters and exits a cell?",
+          answers: [{ text: "The nucleus", correct: false }, { text: "The DNA", correct: false }, { text: "The cell membrane", correct: true }] },
+        { q: "Which organism is made of prokaryotic cells?",
+          answers: [{ text: "A mushroom", correct: false }, { text: "A bacterium", correct: true }, { text: "A plant", correct: false }] }
+      ]
+    }
+  ],
+
+  History: [
+    {
+      paragraph: "The ancient Egyptian civilization flourished along the Nile River for over 3,000 years, making it one of the longest-lasting cultures in human history. The Egyptians are renowned for their monumental architecture, including the Great Pyramids at Giza, which were built as tombs for pharaohs. The pharaoh was considered both a king and a god. Egyptians developed one of the earliest writing systems called hieroglyphics, using symbols to represent sounds and ideas.",
+      questions: [
+        { q: "Along which river did ancient Egyptian civilization flourish?",
+          answers: [{ text: "The Amazon", correct: false }, { text: "The Nile", correct: true }, { text: "The Tigris", correct: false }] },
+        { q: "What was the purpose of the Great Pyramids?",
+          answers: [{ text: "Temples for worship", correct: false }, { text: "Tombs for pharaohs", correct: true }, { text: "Storage for grain", correct: false }] },
+        { q: "What was the ancient Egyptian writing system called?",
+          answers: [{ text: "Cuneiform", correct: false }, { text: "Latin", correct: false }, { text: "Hieroglyphics", correct: true }] }
+      ]
+    },
+    {
+      paragraph: "World War II lasted from 1939 to 1945 and was the deadliest conflict in human history, involving over 30 countries and resulting in an estimated 70 to 85 million deaths. The war began when Nazi Germany under Adolf Hitler invaded Poland on September 1, 1939. The Allied powers — including the United States, the United Kingdom, the Soviet Union, and France — fought against the Axis powers of Germany, Italy, and Japan. The war ended in Europe with Germany's surrender on May 8, 1945 (V-E Day).",
+      questions: [
+        { q: "When did World War II begin?",
+          answers: [{ text: "1941", correct: false }, { text: "1939", correct: true }, { text: "1935", correct: false }] },
+        { q: "Which country did Germany invade to trigger the war?",
+          answers: [{ text: "France", correct: false }, { text: "Russia", correct: false }, { text: "Poland", correct: true }] },
+        { q: "What is V-E Day?",
+          answers: [{ text: "The day Japan surrendered", correct: false }, { text: "The day Germany surrendered in Europe", correct: true }, { text: "The day the US joined the war", correct: false }] }
+      ]
+    },
+    {
+      paragraph: "The Renaissance was a cultural and intellectual movement that began in Italy during the 14th century and spread across Europe, lasting through the 17th century. It marked a revival of interest in the classical art, literature, and philosophy of ancient Greece and Rome. Key Renaissance figures include Leonardo da Vinci, Michelangelo, and Raphael in art, and Galileo Galilei in science. The invention of the printing press by Johannes Gutenberg around 1440 helped spread Renaissance ideas rapidly across Europe.",
+      questions: [
+        { q: "Where did the Renaissance begin?",
+          answers: [{ text: "France", correct: false }, { text: "England", correct: false }, { text: "Italy", correct: true }] },
+        { q: "Which invention helped spread Renaissance ideas across Europe?",
+          answers: [{ text: "The telescope", correct: false }, { text: "The printing press", correct: true }, { text: "The compass", correct: false }] },
+        { q: "Leonardo da Vinci was a key figure of which movement?",
+          answers: [{ text: "The Enlightenment", correct: false }, { text: "The Renaissance", correct: true }, { text: "The Industrial Revolution", correct: false }] }
+      ]
+    },
+    {
+      paragraph: "The American Revolution (1775–1783) was a political and military struggle through which the thirteen American colonies broke free from British rule. Tensions built over issues like taxation without representation in the British Parliament. The Declaration of Independence, largely written by Thomas Jefferson, was adopted on July 4, 1776, declaring the colonies' freedom. With French support, the American forces led by General George Washington defeated the British, resulting in the 1783 Treaty of Paris, which recognized American independence.",
+      questions: [
+        { q: "What was a major cause of the American Revolution?",
+          answers: [{ text: "Disputes over land in Canada", correct: false }, { text: "Taxation without representation", correct: true }, { text: "Religious conflicts", correct: false }] },
+        { q: "Who primarily wrote the Declaration of Independence?",
+          answers: [{ text: "George Washington", correct: false }, { text: "Benjamin Franklin", correct: false }, { text: "Thomas Jefferson", correct: true }] },
+        { q: "Which treaty officially recognized American independence?",
+          answers: [{ text: "Treaty of Versailles", correct: false }, { text: "Treaty of Paris (1783)", correct: true }, { text: "Treaty of Ghent", correct: false }] }
+      ]
+    },
+    {
+      paragraph: "The Industrial Revolution began in Britain in the late 18th century and transformed the way goods were produced. Before this period, most manufacturing was done by hand in homes or small workshops. The invention of the steam engine by James Watt in the 1760s was a pivotal development, enabling factories to run machinery powered by coal. Urbanization increased as people moved from rural areas to cities in search of factory work, dramatically changing social and economic life.",
+      questions: [
+        { q: "Where did the Industrial Revolution begin?",
+          answers: [{ text: "The United States", correct: false }, { text: "France", correct: false }, { text: "Britain", correct: true }] },
+        { q: "Who improved the steam engine in the 1760s?",
+          answers: [{ text: "Isaac Newton", correct: false }, { text: "James Watt", correct: true }, { text: "Thomas Edison", correct: false }] },
+        { q: "What major social change resulted from the Industrial Revolution?",
+          answers: [{ text: "People moved from cities to farms", correct: false }, { text: "The population decreased sharply", correct: false }, { text: "Urbanization increased as people moved to cities", correct: true }] }
+      ]
+    }
+  ],
+
+  English: [
+    {
+      paragraph: "A metaphor is a figure of speech that directly compares two unlike things without using the words 'like' or 'as'. For example, saying 'Life is a journey' is a metaphor because it compares life to a journey without a direct comparison word. This is different from a simile, which uses 'like' or 'as' — such as 'Life is like a journey'. Metaphors help writers create vivid imagery and make abstract ideas easier to understand by linking them to familiar concepts.",
+      questions: [
+        { q: "What is a metaphor?",
+          answers: [{ text: "A comparison using 'like' or 'as'", correct: false }, { text: "A direct comparison of two unlike things", correct: true }, { text: "A type of rhyme scheme", correct: false }] },
+        { q: "How is a simile different from a metaphor?",
+          answers: [{ text: "Similes do not compare things", correct: false }, { text: "Similes use 'like' or 'as' in the comparison", correct: true }, { text: "Similes only describe people", correct: false }] },
+        { q: "Which sentence is a metaphor?",
+          answers: [{ text: "She runs like the wind", correct: false }, { text: "The wind howled loudly", correct: false }, { text: "Time is a thief", correct: true }] }
+      ]
+    },
+    {
+      paragraph: "A noun is a word that names a person, place, thing, or idea. There are several types of nouns: proper nouns name specific people or places (like 'Paris' or 'Einstein') and are always capitalized; common nouns refer to general things (like 'city' or 'scientist'); abstract nouns name ideas or feelings (like 'freedom' or 'love'); and collective nouns name groups (like 'team' or 'flock'). Understanding nouns is essential to mastering sentence structure in English.",
+      questions: [
+        { q: "Which type of noun always starts with a capital letter?",
+          answers: [{ text: "Abstract noun", correct: false }, { text: "Proper noun", correct: true }, { text: "Collective noun", correct: false }] },
+        { q: "Which of these is an abstract noun?",
+          answers: [{ text: "Paris", correct: false }, { text: "Table", correct: false }, { text: "Freedom", correct: true }] },
+        { q: "What does a collective noun refer to?",
+          answers: [{ text: "An idea or feeling", correct: false }, { text: "A group of things", correct: true }, { text: "A specific named place", correct: false }] }
+      ]
+    },
+    {
+      paragraph: "William Shakespeare (1564–1616) is widely considered the greatest writer in the English language and the world's greatest dramatist. He wrote 37 plays, 154 sonnets, and several poems. His works are grouped into tragedies (such as Hamlet and Macbeth), comedies (such as A Midsummer Night's Dream), and histories (such as Henry V). Shakespeare's plays explore timeless themes like love, jealousy, ambition, and betrayal. His writing has influenced literature, language, and culture for over 400 years.",
+      questions: [
+        { q: "How many plays did Shakespeare write?",
+          answers: [{ text: "37", correct: true }, { text: "154", correct: false }, { text: "52", correct: false }] },
+        { q: "Which of these is one of Shakespeare's tragedies?",
+          answers: [{ text: "A Midsummer Night's Dream", correct: false }, { text: "Hamlet", correct: true }, { text: "Henry V", correct: false }] },
+        { q: "What type of play is 'A Midsummer Night's Dream'?",
+          answers: [{ text: "A tragedy", correct: false }, { text: "A history", correct: false }, { text: "A comedy", correct: true }] }
+      ]
+    },
+    {
+      paragraph: "The main parts of a story are the exposition, rising action, climax, falling action, and resolution. The exposition introduces the characters and setting. The rising action builds tension through conflict and events. The climax is the most exciting or turning point of the story. The falling action shows what happens as a result of the climax. The resolution ties up loose ends and concludes the story. These five elements are known as the plot diagram or story arc.",
+      questions: [
+        { q: "What happens during the exposition of a story?",
+          answers: [{ text: "The conflict is resolved", correct: false }, { text: "The story reaches its most exciting point", correct: false }, { text: "Characters and setting are introduced", correct: true }] },
+        { q: "What is the climax of a story?",
+          answers: [{ text: "The conclusion of the story", correct: false }, { text: "The most exciting or turning point", correct: true }, { text: "The introduction of the characters", correct: false }] },
+        { q: "Which term describes the five-part structure of a story?",
+          answers: [{ text: "Story arc / plot diagram", correct: true }, { text: "Story glossary", correct: false }, { text: "Narrative clause", correct: false }] }
+      ]
+    },
+    {
+      paragraph: "Punctuation marks are symbols used in writing to clarify meaning, indicate pauses, and separate ideas. The period (.) marks the end of a sentence. The comma (,) separates items in a list or clauses within a sentence. The question mark (?) ends an interrogative sentence. The exclamation mark (!) shows strong emotion or emphasis. The apostrophe (') indicates possession or contractions. Correct punctuation is essential to ensure that writing is clear and easy to understand.",
+      questions: [
+        { q: "Which punctuation mark is used to end a question?",
+          answers: [{ text: "Period (.)", correct: false }, { text: "Question mark (?)", correct: true }, { text: "Exclamation mark (!)", correct: false }] },
+        { q: "What are the two main uses of an apostrophe?",
+          answers: [{ text: "Pausing and listing", correct: false }, { text: "Ending sentences and showing emotion", correct: false }, { text: "Showing possession and forming contractions", correct: true }] },
+        { q: "What does a comma do in a sentence?",
+          answers: [{ text: "Ends the sentence", correct: false }, { text: "Separates items in a list or clauses", correct: true }, { text: "Shows strong emotion", correct: false }] }
+      ]
+    }
+  ]
+};
+
+/* ================================================================
+   GAME STATE
+================================================================ */
+let state = {
+  subject: '',
+  sets: [],          // shuffled set array for this game
+  setIndex: 0,       // which paragraph set (0–4)
+  score: 0,
+  answered: 0,       // total questions answered
+  correct: 0,
+  wrong: 0,
+  timer: null,
+  timeLeft: 90,
+  answeredThisRound: [false, false, false],
+  bestScores: {}     // { Math: 12, Science: 10, ... }
+};
+
+/* ================================================================
+   HELPERS
+================================================================ */
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('id' in arguments ? id : 'page-' + id).classList.remove('active');
+  const el = document.getElementById('page-' + id);
+  el.classList.add('active');
+  window.scrollTo(0, 0);
+}
+
+function showToast(msg, type) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show ' + (type === 'correct' ? 'correct-toast' : 'wrong-toast');
+  clearTimeout(window._toastTimer);
+  window._toastTimer = setTimeout(() => t.classList.remove('show'), 1600);
+}
+
+/* ================================================================
+   START GAME
+================================================================ */
+function startGame(subject) {
+  state.subject = subject;
+  state.sets = [...QUESTION_BANK[subject]]; // already in order (could shuffle)
+  state.setIndex = 0;
+  state.score = 0;
+  state.answered = 0;
+  state.correct = 0;
+  state.wrong = 0;
+
+  document.getElementById('hdr-subject').textContent = subject;
+  showPage('game');
+  loadRound();
+}
+
+function loadRound() {
+  clearInterval(state.timer);
+  state.timeLeft = 180;
+  state.answeredThisRound = [false, false, false];
+  updateTimerDisplay();
+  startTimer();
+
+  const set = state.sets[state.setIndex];
+  const totalQ = state.setIndex * 3 + 1; // first question of this set
+
+  // Progress bar
+  document.getElementById('progress-fill').style.width = (state.setIndex / 5 * 100) + '%';
+
+  // Question counter (shows current Q range)
+  document.getElementById('hdr-q-counter').textContent = `Q ${totalQ}–${totalQ+2} / 15`;
+
+  // Score
+  updateScoreDisplay();
+
+  // Paragraph
+  document.getElementById('para-text').textContent = set.paragraph;
+
+  // Build questions
+  const container = document.getElementById('questions-container');
+  container.innerHTML = '';
+  set.questions.forEach((q, qi) => {
+    const qNum = state.setIndex * 3 + qi + 1;
+    const card = document.createElement('div');
+    card.className = 'question-card';
+    card.id = `qcard-${qi}`;
+
+    const letters = ['A', 'B', 'C'];
+    card.innerHTML = `<div class="question-text">Q${qNum}. ${q.q}</div>
+      <div class="answers-grid" id="answers-${qi}">
+        ${q.answers.map((a, ai) => `
+          <button class="answer-btn" id="ans-${qi}-${ai}" onclick="selectAnswer(${qi}, ${ai})">
+            <span class="letter">${letters[ai]}</span>
+            <span>${a.text}</span>
+          </button>
+        `).join('')}
+      </div>`;
+    container.appendChild(card);
+  });
+
+  // Next button
+  document.getElementById('btn-next').disabled = true;
+  const isLast = state.setIndex >= 4;
+  document.getElementById('btn-next').textContent = isLast ? 'See Results →' : 'Next →';
+}
+
+/* ================================================================
+   ANSWER SELECTION
+================================================================ */
+function selectAnswer(qi, ai) {
+  if (state.answeredThisRound[qi]) return;
+  state.answeredThisRound[qi] = true;
+
+  const set = state.sets[state.setIndex];
+  const q = set.questions[qi];
+  const isCorrect = q.answers[ai].correct;
+
+  state.answered++;
+  if (isCorrect) { state.score++; state.correct++; }
+  else { state.wrong++; }
+
+  // Disable all buttons for this question & highlight
+  const grid = document.getElementById(`answers-${qi}`);
+  const btns = grid.querySelectorAll('.answer-btn');
+  btns.forEach((btn, idx) => {
+    btn.disabled = true;
+    if (q.answers[idx].correct) btn.classList.add('correct');
+    else if (idx === ai && !isCorrect) btn.classList.add('wrong');
+  });
+
+  showToast(isCorrect ? '✅ Correct!' : '❌ Wrong!', isCorrect ? 'correct' : 'wrong');
+  updateScoreDisplay();
+
+  // Enable Next if all 3 answered
+  if (state.answeredThisRound.every(Boolean)) {
+    document.getElementById('btn-next').disabled = false;
+  }
+}
+
+function updateScoreDisplay() {
+  document.getElementById('hdr-score').textContent = `Score: ${state.score}/${state.answered}`;
+}
+
+/* ================================================================
+   TIMER
+================================================================ */
+function startTimer() {
+  state.timer = setInterval(() => {
+    state.timeLeft--;
+    updateTimerDisplay();
+    if (state.timeLeft <= 0) {
+      clearInterval(state.timer);
+      autoFinishRound();
+    }
+  }, 1000);
+}
+
+function updateTimerDisplay() {
+  const el = document.getElementById('timer-display');
+  el.textContent = state.timeLeft;
+  el.className = 'timer-val' + (state.timeLeft <= 30 ? ' warning' : '');
+}
+
+function autoFinishRound() {
+  // Auto-mark any unanswered as wrong
+  const set = state.sets[state.setIndex];
+  set.questions.forEach((q, qi) => {
+    if (!state.answeredThisRound[qi]) {
+      state.answeredThisRound[qi] = true;
+      state.answered++;
+      state.wrong++;
+      // Show correct answer
+      const grid = document.getElementById(`answers-${qi}`);
+      if (grid) {
+        const btns = grid.querySelectorAll('.answer-btn');
+        btns.forEach((btn, idx) => {
+          btn.disabled = true;
+          if (q.answers[idx].correct) btn.classList.add('correct');
+        });
+      }
+    }
+  });
+  updateScoreDisplay();
+  document.getElementById('btn-next').disabled = false;
+  showToast('⏱️ Time\'s up!', 'wrong');
+}
+
+/* ================================================================
+   NEXT ROUND / RESULTS
+================================================================ */
+function nextRound() {
+  clearInterval(state.timer);
+  state.setIndex++;
+
+  if (state.setIndex >= 5) {
+    showResults();
+  } else {
+    loadRound();
+  }
+}
+
+/* ================================================================
+   RESULTS
+================================================================ */
+function showResults() {
+  showPage('results');
+
+  const total = 15;
+  const pct = Math.round((state.score / total) * 100);
+
+  // Best score
+  const best = state.bestScores[state.subject] || 0;
+  if (state.score > best) state.bestScores[state.subject] = state.score;
+  const bestFinal = state.bestScores[state.subject];
+
+  // Grade
+  let grade, gradeColor;
+  if (pct >= 90)      { grade = 'A'; gradeColor = '#00e5c0'; }
+  else if (pct >= 80) { grade = 'B'; gradeColor = '#5b8cff'; }
+  else if (pct >= 70) { grade = 'C'; gradeColor = '#ffd166'; }
+  else if (pct >= 60) { grade = 'D'; gradeColor = '#ff9966'; }
+  else                { grade = 'F'; gradeColor = '#ff6b9d'; }
+
+  // Medal
+  let medal, title, advice;
+  if (pct === 100)     { medal = '🏆'; title = 'Perfect Score!';    advice = 'Flawless! You read and understood every single detail. You are a true ReadQuest champion!'; }
+  else if (pct >= 80)  { medal = '🥇'; title = 'Outstanding!';      advice = 'Excellent reading comprehension! Just a tiny bit more and you\'ll be perfect. Keep it up!'; }
+  else if (pct >= 60)  { medal = '🥈'; title = 'Great Job!';        advice = 'Solid performance! Review the passages you missed and you\'ll be unstoppable next time.'; }
+  else if (pct >= 40)  { medal = '🥉'; title = 'Good Effort!';      advice = 'You\'re getting there! Read paragraphs slowly and focus on key details to improve your score.'; }
+  else                 { medal = '📚'; title = 'Keep Practicing!';   advice = 'Don\'t give up — every expert was once a beginner. Read more, practice more, and you\'ll improve!'; }
+
+  document.getElementById('medal').textContent = medal;
+  document.getElementById('result-title').textContent = title;
+  document.getElementById('result-advice').textContent = advice;
+  document.getElementById('result-subject').textContent = '📚 ' + state.subject;
+
+  document.getElementById('res-score').textContent = `${state.score}/${total}`;
+  document.getElementById('res-best').textContent = `${bestFinal}/${total}`;
+  document.getElementById('res-pct').textContent = `${pct}%`;
+  document.getElementById('res-correct').textContent = state.correct;
+  document.getElementById('res-wrong').textContent = state.wrong;
+  document.getElementById('res-accuracy').textContent = state.answered > 0 ? Math.round((state.correct / state.answered) * 100) + '%' : '0%';
+
+  const badge = document.getElementById('res-grade-badge');
+  badge.textContent = grade;
+  badge.style.background = gradeColor + '22';
+  badge.style.color = gradeColor;
+  badge.style.border = `2px solid ${gradeColor}44`;
+
+  // Progress bar full
+  document.getElementById('progress-fill').style.width = '100%';
+}
+
+function playAgainSame() { startGame(state.subject); }
+function goHome() { clearInterval(state.timer); showPage('intro'); }
+</script>
+</body>
+</html>
