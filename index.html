@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MainLine – English Comprehension Game</title>
+<title>Mainline – Reading Comprehension Game</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
   /* ============================================================
@@ -250,6 +250,43 @@
   .toast.correct-toast { border-color: var(--accent3); color: var(--accent3); }
   .toast.wrong-toast { border-color: var(--accent2); color: var(--accent2); }
 
+
+  /* ── Two-phase UI ── */
+  .phase-label {
+    display: flex; align-items: center; gap: 12px; margin-bottom: 16px; flex-wrap: wrap;
+  }
+  .phase-pill {
+    font-family: 'Syne', sans-serif; font-weight: 700; font-size: .75rem;
+    letter-spacing: .1em; padding: 5px 14px; border-radius: 50px;
+  }
+  .read-pill   { background: rgba(0,229,192,.15); color: var(--accent3); border: 1px solid rgba(0,229,192,.3); }
+  .answer-pill { background: rgba(255,107,157,.15); color: var(--accent2); border: 1px solid rgba(255,107,157,.3); }
+  .phase-hint  { font-size: .85rem; color: var(--muted); }
+
+  .btn-ready {
+    background: linear-gradient(135deg, var(--accent3), #00b8a0);
+    color: #0d0f1a; font-family: 'Syne', sans-serif; font-weight: 800;
+    font-size: 1rem; padding: 16px 32px; border-radius: 50px; border: none;
+    cursor: pointer; transition: var(--transition);
+    box-shadow: 0 4px 24px rgba(0,229,192,.3);
+  }
+  .btn-ready:hover { transform: translateY(-2px); box-shadow: 0 8px 32px rgba(0,229,192,.4); }
+
+  .no-para-notice {
+    display: flex; align-items: center; gap: 10px;
+    background: rgba(255,107,157,.07); border: 1px dashed rgba(255,107,157,.3);
+    border-radius: 12px; padding: 14px 20px; margin-bottom: 20px;
+    font-size: .9rem; color: var(--muted); font-style: italic;
+  }
+  .no-para-notice span { font-size: 1.1rem; }
+
+  /* Slide transition between phases */
+  @keyframes slideInRight {
+    from { opacity: 0; transform: translateX(30px); }
+    to   { opacity: 1; transform: translateX(0); }
+  }
+  #phase-answer { animation: slideInRight .35s ease; }
+
   /* Return button */
   .btn-return {
     background: transparent; border: 2px solid var(--border); border-radius: 50px;
@@ -298,7 +335,7 @@
   <div class="container">
     <div class="intro-hero">
       <span class="badge">📖 READING COMPREHENSION</span>
-      <h1>MainLine</h1>
+      <h1>Mainline</h1>
       <p>Read, understand, and conquer — test your comprehension across four exciting subjects!</p>
     </div>
 
@@ -314,7 +351,7 @@
       </div>
       <div class="instruction-row">
         <div class="instr-num">3</div>
-        <p>You have <strong>90 seconds per paragraph set</strong>. Answer all 3 questions before time runs out!</p>
+        <p>After reading, click <strong>"Done Reading"</strong> to lock the paragraph and start your <strong>180-second</strong> answer timer. You cannot go back!</p>
       </div>
       <div class="instruction-row">
         <div class="instr-num">4</div>
@@ -368,18 +405,40 @@
   <div class="progress-track"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
 
   <div class="container game-body">
-    <div class="paragraph-card">
-      <h3>📄 READ CAREFULLY</h3>
-      <p id="para-text">Loading paragraph…</p>
+
+    <!-- PHASE 1: READ -->
+    <div id="phase-read">
+      <div class="phase-label">
+        <span class="phase-pill read-pill">📄 PHASE 1 — READ</span>
+        <span class="phase-hint">Read the paragraph carefully. You won't be able to see it again!</span>
+      </div>
+      <div class="paragraph-card">
+        <p id="para-text">Loading paragraph…</p>
+      </div>
+      <div class="next-wrap">
+        <button class="btn btn-ready" id="btn-ready" onclick="startAnswerPhase()">
+          ✅ I'm Done Reading — Start Questions
+        </button>
+      </div>
     </div>
 
-    <div id="questions-container"></div>
-
-    <div class="next-wrap">
-      <button class="btn btn-primary" id="btn-next" onclick="nextRound()" disabled>
-        Next &rarr;
-      </button>
+    <!-- PHASE 2: ANSWER -->
+    <div id="phase-answer" style="display:none">
+      <div class="phase-label">
+        <span class="phase-pill answer-pill">🧠 PHASE 2 — ANSWER</span>
+        <span class="phase-hint">Answer all 3 questions from memory. The paragraph is now hidden.</span>
+      </div>
+      <div class="no-para-notice">
+        <span>🔒</span> The paragraph is locked. Answer from memory!
+      </div>
+      <div id="questions-container"></div>
+      <div class="next-wrap">
+        <button class="btn btn-primary" id="btn-next" onclick="nextRound()" disabled>
+          Next &rarr;
+        </button>
+      </div>
     </div>
+
   </div>
 </div>
 
@@ -739,24 +798,25 @@ function loadRound() {
   state.timeLeft = 180;
   state.answeredThisRound = [false, false, false];
   updateTimerDisplay();
-  startTimer();
 
   const set = state.sets[state.setIndex];
-  const totalQ = state.setIndex * 3 + 1; // first question of this set
+  const totalQ = state.setIndex * 3 + 1;
 
   // Progress bar
   document.getElementById('progress-fill').style.width = (state.setIndex / 5 * 100) + '%';
 
-  // Question counter (shows current Q range)
+  // Question counter & score
   document.getElementById('hdr-q-counter').textContent = `Q ${totalQ}–${totalQ+2} / 15`;
-
-  // Score
   updateScoreDisplay();
 
-  // Paragraph
+  // Show READ phase, hide ANSWER phase
+  document.getElementById('phase-read').style.display = 'block';
+  document.getElementById('phase-answer').style.display = 'none';
+
+  // Paragraph — show it in read phase
   document.getElementById('para-text').textContent = set.paragraph;
 
-  // Build questions
+  // Pre-build questions (hidden until answer phase)
   const container = document.getElementById('questions-container');
   container.innerHTML = '';
   set.questions.forEach((q, qi) => {
@@ -764,7 +824,6 @@ function loadRound() {
     const card = document.createElement('div');
     card.className = 'question-card';
     card.id = `qcard-${qi}`;
-
     const letters = ['A', 'B', 'C'];
     card.innerHTML = `<div class="question-text">Q${qNum}. ${q.q}</div>
       <div class="answers-grid" id="answers-${qi}">
@@ -778,10 +837,19 @@ function loadRound() {
     container.appendChild(card);
   });
 
-  // Next button
+  // Next button label
   document.getElementById('btn-next').disabled = true;
   const isLast = state.setIndex >= 4;
   document.getElementById('btn-next').textContent = isLast ? 'See Results →' : 'Next →';
+}
+
+/* Transition from READ → ANSWER phase */
+function startAnswerPhase() {
+  document.getElementById('phase-read').style.display = 'none';
+  document.getElementById('phase-answer').style.display = 'block';
+  window.scrollTo(0, 0);
+  // NOW start the timer
+  startTimer();
 }
 
 /* ================================================================
@@ -903,7 +971,7 @@ function showResults() {
 
   // Medal
   let medal, title, advice;
-  if (pct === 100)     { medal = '🏆'; title = 'Perfect Score!';    advice = 'Flawless! You read and understood every single detail. You are a true MainLine champion!'; }
+  if (pct === 100)     { medal = '🏆'; title = 'Perfect Score!';    advice = 'Flawless! You read and understood every single detail. You are a true Mainline champion!'; }
   else if (pct >= 80)  { medal = '🥇'; title = 'Outstanding!';      advice = 'Excellent reading comprehension! Just a tiny bit more and you\'ll be perfect. Keep it up!'; }
   else if (pct >= 60)  { medal = '🥈'; title = 'Great Job!';        advice = 'Solid performance! Review the passages you missed and you\'ll be unstoppable next time.'; }
   else if (pct >= 40)  { medal = '🥉'; title = 'Good Effort!';      advice = 'You\'re getting there! Read paragraphs slowly and focus on key details to improve your score.'; }
