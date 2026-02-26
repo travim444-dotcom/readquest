@@ -1,0 +1,1542 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mainline – Reading Comprehension Game</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:        #0d0f1a;
+    --surface:   #161929;
+    --card:      #1e2236;
+    --border:    #2e3454;
+    --accent:    #5b8cff;
+    --accent2:   #ff6b9d;
+    --accent3:   #00e5c0;
+    --gold:      #ffd166;
+    --text:      #e8ecff;
+    --muted:     #7880a4;
+    --radius:    18px;
+    --transition: 0.25s cubic-bezier(.4,0,.2,1);
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background:
+      radial-gradient(ellipse 80% 60% at 20% 10%, rgba(91,140,255,.12) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 50% at 80% 90%, rgba(255,107,157,.10) 0%, transparent 60%);
+    pointer-events: none; z-index: 0;
+  }
+  .page { display: none; position: relative; z-index: 1; animation: fadeUp .4s ease; }
+  .page.active { display: block; }
+  @keyframes fadeUp {
+    from { opacity:0; transform: translateY(20px); }
+    to   { opacity:1; transform: translateY(0); }
+  }
+  h1,h2,h3 { font-family: 'Syne', sans-serif; }
+  .container { max-width: 860px; margin: 0 auto; padding: 24px 20px; }
+
+  /* ── BUTTONS ── */
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    padding: 14px 28px; border-radius: 50px; border: none; cursor: pointer;
+    font-family: 'Syne', sans-serif; font-weight: 700; font-size: .95rem;
+    transition: var(--transition); text-decoration: none;
+  }
+  .btn-primary { background: var(--accent); color: #fff; box-shadow: 0 4px 24px rgba(91,140,255,.35); }
+  .btn-primary:hover { background: #7aa3ff; transform: translateY(-2px); box-shadow: 0 8px 32px rgba(91,140,255,.45); }
+  .btn-ghost { background: var(--card); border: 2px solid var(--border); color: var(--text); }
+  .btn-ghost:hover { border-color: var(--accent); color: var(--accent); transform: translateY(-2px); }
+
+  /* ── INTRO ── */
+  #page-intro { min-height: 100vh; }
+  .intro-hero { text-align: center; padding: 60px 0 36px; }
+  .intro-hero .badge {
+    display: inline-block; background: rgba(91,140,255,.15); border: 1px solid rgba(91,140,255,.3);
+    color: var(--accent); border-radius: 50px; padding: 6px 18px; font-size: .8rem;
+    font-family: 'Syne', sans-serif; font-weight: 600; letter-spacing: .08em; margin-bottom: 20px;
+  }
+  .intro-hero h1 {
+    font-size: clamp(2.4rem, 6vw, 4rem); font-weight: 800; line-height: 1.1;
+    background: linear-gradient(135deg, #fff 30%, var(--accent) 70%, var(--accent2));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    margin-bottom: 16px;
+  }
+  .intro-hero p { color: var(--muted); font-size: 1.05rem; max-width: 480px; margin: 0 auto 36px; line-height: 1.6; }
+
+  .instructions-card {
+    background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 28px; margin-bottom: 32px;
+  }
+  .instructions-card h2 { font-size: 1rem; color: var(--accent3); margin-bottom: 16px; letter-spacing: .1em; }
+  .instruction-row { display: flex; align-items: flex-start; gap: 14px; margin-bottom: 14px; }
+  .instruction-row:last-child { margin-bottom: 0; }
+  .instr-num {
+    width: 28px; height: 28px; border-radius: 50%; background: rgba(91,140,255,.2);
+    color: var(--accent); font-family: 'Syne',sans-serif; font-weight: 700; font-size: .85rem;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 2px;
+  }
+  .instruction-row p { color: var(--muted); font-size: .95rem; line-height: 1.6; }
+  .instruction-row p strong { color: var(--text); }
+
+  /* Subject order strip */
+  .subject-order-card {
+    background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 22px 28px; margin-bottom: 32px;
+  }
+  .subject-order-card h2 { font-size: .85rem; color: var(--accent3); letter-spacing: .1em; margin-bottom: 16px; }
+  .subject-order-row { display: flex; align-items: center; gap: 0; flex-wrap: wrap; justify-content: center; }
+  .subject-order-item {
+    display: flex; align-items: center; gap: 8px;
+    background: rgba(255,255,255,.04); border: 1px solid var(--border);
+    border-radius: 12px; padding: 10px 18px;
+    font-family: 'Syne', sans-serif; font-weight: 700; font-size: .88rem;
+    color: var(--text);
+  }
+  .subject-order-item .subj-num {
+    width: 22px; height: 22px; border-radius: 50%; background: rgba(91,140,255,.2);
+    color: var(--accent); font-size: .75rem; font-weight: 800;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .subject-order-arrow { color: var(--muted); font-size: 1.2rem; padding: 0 6px; }
+
+  /* Attempts badge on intro */
+  .attempts-banner {
+    background: rgba(255,209,102,.07); border: 1px solid rgba(255,209,102,.2);
+    border-radius: 14px; padding: 14px 22px; margin-bottom: 28px;
+    display: flex; align-items: center; justify-content: center; gap: 12px; flex-wrap: wrap;
+    text-align: center;
+  }
+  .attempts-banner .att-label { color: var(--muted); font-size: .88rem; }
+  .attempts-banner .att-val {
+    font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.1rem; color: var(--gold);
+  }
+  .attempts-banner .att-best {
+    font-family: 'Syne', sans-serif; font-weight: 700; font-size: .88rem; color: var(--accent3);
+  }
+
+  .start-area { text-align: center; margin-bottom: 52px; }
+  .btn-start {
+    background: linear-gradient(135deg, var(--accent), #7aa3ff);
+    color: #fff; font-family: 'Syne', sans-serif; font-weight: 800;
+    font-size: 1.1rem; padding: 20px 52px; border-radius: 50px; border: none;
+    cursor: pointer; transition: var(--transition); box-shadow: 0 6px 32px rgba(91,140,255,.45);
+  }
+  .btn-start:hover { transform: translateY(-3px); box-shadow: 0 12px 40px rgba(91,140,255,.55); }
+  .start-subtitle { color: var(--muted); font-size: .85rem; margin-top: 10px; }
+
+  /* ── GAME PAGE ── */
+  #page-game { min-height: 100vh; }
+  .game-header {
+    display: flex; align-items: center; justify-content: space-between;
+    background: var(--card); border-bottom: 1px solid var(--border);
+    padding: 14px 24px; position: sticky; top: 0; z-index: 10;
+    backdrop-filter: blur(12px);
+  }
+  .game-header .subject-label { font-family: 'Syne', sans-serif; font-weight: 700; font-size: .9rem; color: var(--accent); }
+  .game-meta { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+  .q-counter { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 1rem; color: var(--text); }
+  .score-display { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 1rem; color: var(--gold); }
+  .timer-wrap { display: flex; align-items: center; gap: 8px; }
+  .timer-val { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 1rem; color: var(--accent3); }
+  .timer-val.warning { color: var(--accent2); animation: pulse .6s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:.5;} }
+
+  /* Subject progress track (replaces simple bar) */
+  .subject-progress-wrap {
+    background: var(--surface); border-bottom: 1px solid var(--border);
+    padding: 8px 24px 10px; display: flex; align-items: center; gap: 8px; overflow-x: auto;
+  }
+  .subj-prog-item {
+    display: flex; align-items: center; gap: 6px; flex-shrink: 0;
+  }
+  .subj-prog-dot {
+    width: 10px; height: 10px; border-radius: 50%; background: var(--border);
+    transition: background .3s;
+  }
+  .subj-prog-dot.done { background: var(--accent3); }
+  .subj-prog-dot.active { background: var(--accent); box-shadow: 0 0 6px rgba(91,140,255,.7); animation: pulse .8s infinite; }
+  .subj-prog-label { font-family: 'Syne', sans-serif; font-size: .7rem; font-weight: 700; color: var(--muted); white-space: nowrap; }
+  .subj-prog-label.active-label { color: var(--accent); }
+  .subj-prog-label.done-label { color: var(--accent3); }
+  .subj-prog-arrow { color: var(--border); font-size: .8rem; }
+
+  .progress-track { height: 4px; background: var(--border); }
+  .progress-fill {
+    height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent2));
+    transition: width .5s cubic-bezier(.4,0,.2,1); border-radius: 0 3px 3px 0;
+  }
+
+  .game-body { padding: 28px 0 40px; }
+
+  .paragraph-card {
+    background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 28px; margin-bottom: 28px; position: relative; overflow: hidden;
+  }
+  .paragraph-card::before {
+    content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px;
+    background: linear-gradient(180deg, var(--accent), var(--accent2));
+  }
+  .paragraph-card p { line-height: 1.75; font-size: .97rem; color: var(--text); }
+
+  .question-card {
+    background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 24px; margin-bottom: 16px;
+  }
+  .question-text { font-family: 'Syne', sans-serif; font-weight: 600; font-size: 1rem; margin-bottom: 16px; line-height: 1.5; }
+  .answers-grid { display: grid; gap: 10px; }
+  .answer-btn {
+    display: flex; align-items: center; gap: 12px;
+    background: var(--surface); border: 2px solid var(--border); border-radius: 12px;
+    padding: 12px 16px; cursor: pointer; transition: var(--transition); color: var(--text);
+    font-family: 'DM Sans', sans-serif; font-size: .95rem; text-align: left;
+  }
+  .answer-btn:hover:not(:disabled) { border-color: var(--accent); background: rgba(91,140,255,.08); }
+  .answer-btn .letter {
+    width: 28px; height: 28px; border-radius: 50%; background: rgba(255,255,255,.07);
+    font-family: 'Syne', sans-serif; font-weight: 700; font-size: .8rem; color: var(--muted);
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .answer-btn.correct { border-color: var(--accent3); background: rgba(0,229,192,.1); }
+  .answer-btn.correct .letter { background: var(--accent3); color: #0d0f1a; }
+  .answer-btn.wrong { border-color: var(--accent2); background: rgba(255,107,157,.1); }
+  .answer-btn.wrong .letter { background: var(--accent2); color: #fff; }
+  .answer-btn:disabled { cursor: default; }
+  .next-wrap { text-align: center; margin-top: 28px; }
+
+  /* Subject transition banner */
+  .subj-transition {
+    background: linear-gradient(135deg, rgba(91,140,255,.12), rgba(0,229,192,.08));
+    border: 1px solid rgba(91,140,255,.25); border-radius: var(--radius);
+    padding: 28px; text-align: center; margin-bottom: 28px;
+  }
+  .subj-transition .st-icon { font-size: 2.5rem; margin-bottom: 8px; }
+  .subj-transition h3 { font-size: 1.1rem; font-weight: 800; margin-bottom: 6px; }
+  .subj-transition p { color: var(--muted); font-size: .9rem; }
+
+  /* Phase UI */
+  .phase-label { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
+  .phase-pill { font-family: 'Syne', sans-serif; font-weight: 700; font-size: .75rem; letter-spacing: .1em; padding: 5px 14px; border-radius: 50px; }
+  .read-pill   { background: rgba(0,229,192,.15); color: var(--accent3); border: 1px solid rgba(0,229,192,.3); }
+  .answer-pill { background: rgba(255,107,157,.15); color: var(--accent2); border: 1px solid rgba(255,107,157,.3); }
+  .phase-hint  { font-size: .85rem; color: var(--muted); }
+
+  .btn-ready {
+    background: linear-gradient(135deg, var(--accent3), #00b8a0);
+    color: #0d0f1a; font-family: 'Syne', sans-serif; font-weight: 800;
+    font-size: 1rem; padding: 16px 32px; border-radius: 50px; border: none;
+    cursor: pointer; transition: var(--transition); box-shadow: 0 4px 24px rgba(0,229,192,.3);
+  }
+  .btn-ready:hover { transform: translateY(-2px); box-shadow: 0 8px 32px rgba(0,229,192,.4); }
+
+  .no-para-notice {
+    display: flex; align-items: center; gap: 10px;
+    background: rgba(255,107,157,.07); border: 1px dashed rgba(255,107,157,.3);
+    border-radius: 12px; padding: 14px 20px; margin-bottom: 20px;
+    font-size: .9rem; color: var(--muted); font-style: italic;
+  }
+  @keyframes slideInRight { from { opacity:0; transform: translateX(30px); } to { opacity:1; transform: translateX(0); } }
+  #phase-answer { animation: slideInRight .35s ease; }
+
+  .btn-return {
+    background: transparent; border: 2px solid var(--border); border-radius: 50px;
+    color: var(--muted); font-family: 'Syne', sans-serif; font-weight: 700; font-size: .85rem;
+    padding: 7px 16px; cursor: pointer; transition: var(--transition);
+  }
+  .btn-return:hover { border-color: var(--accent2); color: var(--accent2); }
+
+  /* ── RESULTS ── */
+  #page-results { min-height: 100vh; }
+  .results-hero { text-align: center; padding: 48px 0 28px; }
+  .medal { font-size: 6rem; display: block; margin-bottom: 12px; animation: medalDrop .6s cubic-bezier(.34,1.56,.64,1); }
+  @keyframes medalDrop { from{opacity:0;transform:scale(0) rotate(-20deg);} to{opacity:1;transform:scale(1) rotate(0);} }
+  .results-hero h1 { font-size: 2rem; font-weight: 800; margin-bottom: 8px; }
+  .results-hero .advice { color: var(--muted); font-size: 1rem; max-width: 420px; margin: 0 auto 16px; line-height: 1.6; }
+  .subject-tag {
+    display: inline-block; padding: 5px 16px; border-radius: 50px;
+    background: rgba(91,140,255,.15); border: 1px solid rgba(91,140,255,.3);
+    color: var(--accent); font-family: 'Syne', sans-serif; font-weight: 700; font-size: .85rem;
+  }
+
+  /* Per-subject breakdown on results */
+  .subject-breakdown {
+    background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 22px 28px; margin-bottom: 24px;
+  }
+  .subject-breakdown h3 { font-size: .8rem; color: var(--accent3); letter-spacing: .1em; margin-bottom: 16px; }
+  .breakdown-row {
+    display: flex; align-items: center; gap: 14px; margin-bottom: 12px; flex-wrap: wrap;
+  }
+  .breakdown-row:last-child { margin-bottom: 0; }
+  .bd-subj { font-family: 'Syne', sans-serif; font-weight: 700; font-size: .9rem; width: 120px; flex-shrink: 0; }
+  .bd-bar-wrap { flex: 1; height: 10px; background: var(--border); border-radius: 6px; min-width: 80px; }
+  .bd-bar { height: 100%; border-radius: 6px; transition: width .8s cubic-bezier(.4,0,.2,1); }
+  .bd-bar.perfect { background: var(--accent3); }
+  .bd-bar.good { background: var(--accent); }
+  .bd-bar.poor { background: var(--accent2); }
+  .bd-score { font-family: 'Syne', sans-serif; font-weight: 700; font-size: .85rem; width: 48px; text-align: right; flex-shrink: 0; }
+  .bd-check { font-size: 1rem; flex-shrink: 0; }
+
+  .results-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 14px; margin: 24px 0; }
+  .stat-card {
+    background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 20px; text-align: center;
+  }
+  .stat-card .stat-label { font-size: .75rem; color: var(--muted); letter-spacing: .1em; margin-bottom: 8px; }
+  .stat-card .stat-val { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.8rem; }
+  .stat-card.highlight { border-color: var(--gold); }
+  .stat-card.highlight .stat-val { color: var(--gold); }
+  .stat-card.good .stat-val { color: var(--accent3); }
+  .stat-card.bad .stat-val { color: var(--accent2); }
+  .grade-badge {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 64px; height: 64px; border-radius: 50%; font-family: 'Syne', sans-serif;
+    font-weight: 800; font-size: 1.6rem; margin: 0 auto;
+  }
+
+  /* Perfect score unlock banner */
+  .cert-unlock-banner {
+    background: linear-gradient(135deg, rgba(255,209,102,.12), rgba(0,229,192,.08));
+    border: 2px solid rgba(255,209,102,.35); border-radius: var(--radius);
+    padding: 20px 24px; text-align: center; margin-bottom: 24px;
+    animation: fadeUp .5s ease;
+  }
+  .cert-unlock-banner .cub-icon { font-size: 2rem; margin-bottom: 6px; }
+  .cert-unlock-banner h3 { font-size: 1rem; font-weight: 800; color: var(--gold); margin-bottom: 4px; }
+  .cert-unlock-banner p { color: var(--muted); font-size: .85rem; }
+
+  /* Locked banner */
+  .cert-locked-banner {
+    background: rgba(255,107,157,.06); border: 1px solid rgba(255,107,157,.2);
+    border-radius: var(--radius); padding: 16px 24px; text-align: center; margin-bottom: 24px;
+    font-size: .88rem; color: var(--muted);
+  }
+  .cert-locked-banner strong { color: var(--accent2); }
+
+  .results-actions { text-align: center; display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; padding-bottom: 48px; }
+
+  /* ── CERTIFICATE PAGE ── */
+  #page-certificate { min-height: 100vh; }
+  .cert-intro { text-align: center; padding: 32px 0 20px; }
+  .cert-intro p { color: var(--muted); font-size: .9rem; margin-top: 8px; }
+
+  .certificate-wrapper { display: flex; justify-content: center; padding: 20px 0 28px; }
+  .certificate {
+    background: linear-gradient(145deg, #1a1e35, #1e2236);
+    border: 3px solid var(--gold); border-radius: 24px;
+    padding: 52px 48px; max-width: 680px; width: 100%;
+    text-align: center; position: relative; overflow: hidden;
+    box-shadow: 0 0 60px rgba(255,209,102,.15), inset 0 0 80px rgba(91,140,255,.04);
+  }
+  .certificate::before, .certificate::after {
+    content: ''; position: absolute; width: 100px; height: 100px;
+    background: radial-gradient(circle, rgba(255,209,102,.1) 0%, transparent 70%);
+  }
+  .certificate::before { top: -20px; left: -20px; }
+  .certificate::after  { bottom: -20px; right: -20px; }
+  .cert-corner { position: absolute; font-size: 1.4rem; opacity: .5; }
+  .cert-corner.tl { top: 18px; left: 22px; }
+  .cert-corner.tr { top: 18px; right: 22px; }
+  .cert-corner.bl { bottom: 18px; left: 22px; }
+  .cert-corner.br { bottom: 18px; right: 22px; }
+  .cert-border-inner { border: 1px solid rgba(255,209,102,.25); border-radius: 16px; padding: 36px 32px; position: relative; z-index: 1; }
+  .cert-logo { font-size: 2.8rem; margin-bottom: 6px; }
+  .cert-app-name {
+    font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.3rem;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    letter-spacing: .12em; margin-bottom: 20px;
+  }
+  .cert-divider { display: flex; align-items: center; gap: 12px; margin: 12px 0; }
+  .cert-divider::before, .cert-divider::after { content: ''; flex: 1; height: 1px; background: rgba(255,209,102,.25); }
+  .cert-divider span { color: var(--gold); font-size: .7rem; letter-spacing: .2em; font-family: 'Syne', sans-serif; font-weight: 700; }
+  .cert-presents { color: var(--muted); font-size: .8rem; letter-spacing: .15em; text-transform: uppercase; margin-bottom: 6px; }
+  .cert-name {
+    font-family: 'Syne', sans-serif; font-weight: 800;
+    font-size: clamp(1.5rem, 4vw, 2.2rem);
+    background: linear-gradient(135deg, var(--gold), #ffb300);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    margin-bottom: 18px;
+  }
+  .cert-for { color: var(--muted); font-size: .82rem; margin-bottom: 24px; line-height: 1.6; }
+  .cert-score-row { display: flex; justify-content: center; gap: 24px; flex-wrap: wrap; margin-bottom: 24px; }
+  .cert-score-item { background: rgba(255,255,255,.05); border: 1px solid rgba(255,209,102,.2); border-radius: 12px; padding: 12px 20px; text-align: center; }
+  .cert-score-item .cscore-label { font-size: .7rem; color: var(--muted); letter-spacing: .1em; margin-bottom: 4px; }
+  .cert-score-item .cscore-val { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.4rem; color: var(--gold); }
+  .cert-date { color: var(--muted); font-size: .78rem; margin-bottom: 20px; }
+  .cert-seal { width: 72px; height: 72px; border-radius: 50%; background: linear-gradient(135deg, var(--gold), #ffb300); display: flex; align-items: center; justify-content: center; margin: 0 auto 8px; font-size: 2rem; box-shadow: 0 4px 20px rgba(255,209,102,.4); }
+  .cert-seal-text { font-family: 'Syne', sans-serif; font-weight: 700; font-size: .7rem; color: var(--gold); letter-spacing: .08em; }
+
+  .cert-screenshot-hint {
+    background: rgba(91,140,255,.08); border: 1px solid rgba(91,140,255,.2);
+    border-radius: 12px; padding: 12px 20px; margin-bottom: 16px;
+    font-size: .85rem; color: var(--muted); text-align: center;
+  }
+  .cert-screenshot-hint strong { color: var(--accent); }
+
+  /* Feedback embedded in cert page */
+  .feedback-section {
+    background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 28px; margin-bottom: 24px;
+  }
+  .feedback-section h3 { font-size: 1rem; font-weight: 800; margin-bottom: 6px; }
+  .feedback-section > p { color: var(--muted); font-size: .88rem; margin-bottom: 22px; }
+
+  .fb-name-row { margin-bottom: 22px; }
+  .feedback-label {
+    font-family: 'Syne', sans-serif; font-weight: 700; font-size: .8rem;
+    color: var(--accent3); letter-spacing: .1em; text-transform: uppercase;
+    margin-bottom: 10px; display: block;
+  }
+  .feedback-input {
+    width: 100%; background: var(--surface); border: 2px solid var(--border);
+    border-radius: 12px; padding: 13px 18px; color: var(--text);
+    font-family: 'DM Sans', sans-serif; font-size: 1rem;
+    transition: var(--transition); outline: none;
+  }
+  .feedback-input:focus { border-color: var(--accent); background: rgba(91,140,255,.05); }
+  .feedback-input::placeholder { color: var(--muted); }
+
+  .feedback-q-block { margin-bottom: 22px; }
+  .feedback-q-block:last-child { margin-bottom: 0; }
+  .feedback-q-text { font-family: 'Syne', sans-serif; font-weight: 600; font-size: .95rem; margin-bottom: 12px; color: var(--text); line-height: 1.5; }
+
+  .star-row { display: flex; gap: 8px; flex-wrap: wrap; }
+  .star-btn {
+    background: var(--surface); border: 2px solid var(--border); border-radius: 10px;
+    padding: 9px 14px; cursor: pointer; font-size: 1.2rem; transition: var(--transition);
+    color: var(--muted); font-family: 'Syne', sans-serif; font-weight: 700;
+    display: flex; align-items: center; gap: 5px;
+  }
+  .star-btn:hover { border-color: var(--gold); background: rgba(255,209,102,.07); }
+  .star-btn.selected { border-color: var(--gold); background: rgba(255,209,102,.12); color: var(--gold); }
+
+  .emoji-row { display: flex; gap: 8px; flex-wrap: wrap; }
+  .emoji-btn {
+    background: var(--surface); border: 2px solid var(--border); border-radius: 12px;
+    padding: 10px 14px; cursor: pointer; font-size: 1.3rem; transition: var(--transition);
+    display: flex; flex-direction: column; align-items: center; gap: 3px; min-width: 66px;
+  }
+  .emoji-btn .emoji-label { font-size: .68rem; font-family: 'Syne', sans-serif; font-weight: 600; color: var(--muted); }
+  .emoji-btn:hover { border-color: var(--accent2); transform: translateY(-2px); }
+  .emoji-btn.selected { border-color: var(--accent2); background: rgba(255,107,157,.08); }
+  .emoji-btn.selected .emoji-label { color: var(--accent2); }
+
+  .option-row { display: grid; gap: 8px; }
+  .option-btn {
+    background: var(--surface); border: 2px solid var(--border); border-radius: 12px;
+    padding: 11px 16px; cursor: pointer; transition: var(--transition); color: var(--text);
+    font-family: 'DM Sans', sans-serif; font-size: .9rem; text-align: left;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .option-btn .opt-dot { width: 17px; height: 17px; border-radius: 50%; border: 2px solid var(--border); flex-shrink: 0; transition: var(--transition); }
+  .option-btn:hover { border-color: var(--accent); background: rgba(91,140,255,.05); }
+  .option-btn.selected { border-color: var(--accent); background: rgba(91,140,255,.08); }
+  .option-btn.selected .opt-dot { background: var(--accent); border-color: var(--accent); }
+
+  .feedback-error { color: var(--accent2); font-size: .85rem; margin-bottom: 12px; display: none; }
+
+  /* Thank you state inside cert page */
+  .feedback-thankyou { text-align: center; padding: 32px 0 12px; }
+  .feedback-thankyou .ty-icon { font-size: 4rem; margin-bottom: 12px; }
+  .feedback-thankyou h3 { font-size: 1.4rem; font-weight: 800; margin-bottom: 8px; }
+  .feedback-thankyou p { color: var(--muted); font-size: .9rem; max-width: 340px; margin: 0 auto; line-height: 1.6; }
+
+  .cert-actions { text-align: center; display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; padding-bottom: 52px; }
+
+  /* ── TOAST ── */
+  .toast {
+    position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(80px);
+    background: var(--card); border: 1px solid var(--border); border-radius: 50px;
+    padding: 12px 24px; font-family: 'Syne', sans-serif; font-weight: 600; font-size: .9rem;
+    z-index: 100; transition: transform .35s cubic-bezier(.34,1.56,.64,1), opacity .35s;
+    opacity: 0; pointer-events: none;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+  .toast.correct-toast { border-color: var(--accent3); color: var(--accent3); }
+  .toast.wrong-toast  { border-color: var(--accent2); color: var(--accent2); }
+
+  /* ── OVERLAY ── */
+  .overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,.7); z-index: 200;
+    display: flex; align-items: center; justify-content: center; animation: fadeIn .2s ease;
+  }
+  @keyframes fadeIn { from{opacity:0;} to{opacity:1;} }
+  .overlay-box {
+    background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 36px 32px; max-width: 360px; width: 90%; text-align: center;
+  }
+  .overlay-box h2 { font-size: 1.2rem; margin-bottom: 10px; }
+  .overlay-box p { color: var(--muted); font-size: .9rem; margin-bottom: 24px; line-height: 1.6; }
+  .overlay-actions { display: flex; gap: 12px; justify-content: center; }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 600px) {
+    .game-header { flex-wrap: wrap; gap: 10px; }
+    .game-meta { gap: 10px; }
+    .certificate { padding: 32px 20px; }
+    .cert-border-inner { padding: 24px 16px; }
+    .subject-order-row { gap: 6px; }
+    .subj-transition { padding: 20px 16px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ============================================================
+     PAGE: INTRO
+============================================================ -->
+<div id="page-intro" class="page active">
+  <div class="container">
+    <div class="intro-hero">
+      <span class="badge">📖 READING COMPREHENSION</span>
+      <h1>Mainline</h1>
+      <p>Read, understand, and conquer — master all four subjects to earn your certificate!</p>
+    </div>
+
+    <div class="instructions-card">
+      <h2>⚡ HOW TO PLAY</h2>
+      <div class="instruction-row">
+        <div class="instr-num">1</div>
+        <p>Click <strong>Start Game</strong>. The game has <strong>60 questions</strong> (20 paragraphs × 3 questions each) across <strong>4 subjects in fixed order</strong>.</p>
+      </div>
+      <div class="instruction-row">
+        <div class="instr-num">2</div>
+        <p>Each subject has <strong>15 questions (5 paragraphs)</strong>. Complete each subject fully before moving to the next.</p>
+      </div>
+      <div class="instruction-row">
+        <div class="instr-num">3</div>
+        <p>Read each paragraph carefully, then click <strong>"Done Reading"</strong> to start the <strong>120-second</strong> answer timer. The paragraph auto-advances after <strong>50 seconds</strong> if you don't click. You cannot go back!</p>
+      </div>
+      <div class="instruction-row">
+        <div class="instr-num">4</div>
+        <p>🏆 The <strong>Certificate</strong> is only awarded for a <strong>Perfect Score — 60/60</strong> across all subjects. Aim for 100%!</p>
+      </div>
+    </div>
+
+    <!-- Subject order -->
+    <div class="subject-order-card">
+      <h2>📋 SUBJECT ORDER</h2>
+      <div class="subject-order-row">
+        <div class="subject-order-item">
+          <span class="subj-num">1</span> 🔢 Math
+        </div>
+        <span class="subject-order-arrow">→</span>
+        <div class="subject-order-item">
+          <span class="subj-num">2</span> 🔬 Science
+        </div>
+        <span class="subject-order-arrow">→</span>
+        <div class="subject-order-item">
+          <span class="subj-num">3</span> 🏛️ History
+        </div>
+        <span class="subject-order-arrow">→</span>
+        <div class="subject-order-item">
+          <span class="subj-num">4</span> 📝 English
+        </div>
+      </div>
+    </div>
+
+    <!-- Attempts tracker -->
+    <div class="attempts-banner" id="attempts-banner" style="display:none">
+      <span class="att-label">🎮 Total Attempts:</span>
+      <span class="att-val" id="att-count">0</span>
+      <span style="color:var(--border)">|</span>
+      <span class="att-label">🏆 Best Score:</span>
+      <span class="att-best" id="att-best">—</span>
+      <span style="color:var(--border)">|</span>
+      <span class="att-label">✅ Perfect Runs:</span>
+      <span class="att-val" id="att-perfect" style="color:var(--accent3)">0</span>
+    </div>
+
+    <div class="start-area">
+      <button class="btn-start" onclick="startGame()">🚀 Start Game</button>
+      <p class="start-subtitle" id="start-subtitle">4 subjects · 20 paragraphs · 60 questions</p>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     PAGE: GAME
+============================================================ -->
+<div id="page-game" class="page">
+  <!-- Sticky header -->
+  <div class="game-header">
+    <button class="btn-return" onclick="confirmReturn()">&#8592; Return</button>
+    <div class="subject-label" id="hdr-subject">Math 🔢</div>
+    <div class="game-meta">
+      <span class="q-counter" id="hdr-q-counter">Q 1–3 / 60</span>
+      <span class="score-display" id="hdr-score">Score: 0/0</span>
+      <div class="timer-wrap">
+        <span>⏱️</span>
+        <span class="timer-val" id="timer-display">180</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Subject progress track -->
+  <div class="subject-progress-wrap" id="subject-progress-wrap">
+    <!-- filled by JS -->
+  </div>
+
+  <!-- Fine-grained progress bar -->
+  <div class="progress-track"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+
+  <div class="container game-body">
+
+    <!-- Subject transition screen -->
+    <div id="phase-transition" style="display:none">
+      <div class="subj-transition">
+        <div class="st-icon" id="st-icon">🔬</div>
+        <h3 id="st-title">Up Next: Science</h3>
+        <p id="st-desc">You've finished Math! Get ready for the next subject.</p>
+      </div>
+      <div class="next-wrap">
+        <button class="btn btn-primary" onclick="continueAfterTransition()">Continue →</button>
+      </div>
+    </div>
+
+    <!-- PHASE 1: READ -->
+    <div id="phase-read" style="display:none">
+      <div class="phase-label">
+        <span class="phase-pill read-pill">📄 PHASE 1 — READ</span>
+        <span class="phase-hint">Read carefully. Auto-advances in 50 seconds!</span>
+      </div>
+      <div class="paragraph-card">
+        <p id="para-text">Loading paragraph…</p>
+      </div>
+      <div class="next-wrap">
+        <button class="btn btn-ready" onclick="startAnswerPhase()">
+          ✅ I'm Done Reading — Start Questions
+        </button>
+      </div>
+    </div>
+
+    <!-- PHASE 2: ANSWER -->
+    <div id="phase-answer" style="display:none">
+      <div class="phase-label">
+        <span class="phase-pill answer-pill">🧠 PHASE 2 — ANSWER</span>
+        <span class="phase-hint">Answer all 3 questions from memory. 120 seconds!</span>
+      </div>
+      <div class="no-para-notice">
+        <span>🔒</span> The paragraph is locked. Answer from memory!
+      </div>
+      <div id="questions-container"></div>
+      <div class="next-wrap">
+        <button class="btn btn-primary" id="btn-next" onclick="nextRound()" disabled>
+          Next &rarr;
+        </button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ============================================================
+     PAGE: RESULTS
+============================================================ -->
+<div id="page-results" class="page">
+  <div class="container">
+    <div class="results-hero">
+      <span class="medal" id="medal">🥇</span>
+      <h1 id="result-title">Amazing!</h1>
+      <p class="advice" id="result-advice">You're a reading champion!</p>
+      <span class="subject-tag">📚 All Subjects · 60 Questions</span>
+    </div>
+
+    <!-- Attempt counter -->
+    <div class="attempts-banner">
+      <span class="att-label">🎮 Attempt #</span>
+      <span class="att-val" id="res-attempt-num">1</span>
+      <span style="color:var(--border)">|</span>
+      <span class="att-label">🏆 Best Score:</span>
+      <span class="att-best" id="res-best-score">—</span>
+      <span style="color:var(--border)">|</span>
+      <span class="att-label">✅ Perfect Runs:</span>
+      <span class="att-val" id="res-perfect-runs" style="color:var(--accent3)">0</span>
+    </div>
+
+    <!-- Per-subject breakdown -->
+    <div class="subject-breakdown">
+      <h3>📊 SUBJECT BREAKDOWN</h3>
+      <div id="breakdown-rows"><!-- filled by JS --></div>
+    </div>
+
+    <!-- Stats grid -->
+    <div class="results-grid">
+      <div class="stat-card highlight">
+        <div class="stat-label">TOTAL SCORE</div>
+        <div class="stat-val" id="res-score">0/60</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">PERCENTAGE</div>
+        <div class="stat-val" id="res-pct">0%</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">GRADE</div>
+        <div class="stat-val"><div class="grade-badge" id="res-grade-badge">F</div></div>
+      </div>
+      <div class="stat-card good">
+        <div class="stat-label">CORRECT ✅</div>
+        <div class="stat-val" id="res-correct">0</div>
+      </div>
+      <div class="stat-card bad">
+        <div class="stat-label">INCORRECT ❌</div>
+        <div class="stat-val" id="res-wrong">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">ACCURACY</div>
+        <div class="stat-val" id="res-accuracy">0%</div>
+      </div>
+    </div>
+
+    <!-- Certificate unlock or lock status -->
+    <div id="cert-unlock-area"></div>
+
+    <div class="results-actions">
+      <button class="btn btn-primary" id="btn-view-cert" onclick="showCertificate()" style="display:none">🏅 View Certificate</button>
+      <button class="btn btn-ghost" onclick="startGame()">🔄 Try Again</button>
+      <button class="btn btn-ghost" onclick="goHome()">🏠 Home</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     PAGE: CERTIFICATE (with embedded feedback)
+============================================================ -->
+<div id="page-certificate" class="page">
+  <div class="container">
+    <div class="cert-intro">
+      <h2 style="font-size:1.6rem;font-weight:800;">🎓 Perfect Score Certificate</h2>
+      <p>You achieved 60/60 — take a screenshot to save your achievement!</p>
+    </div>
+
+    <div class="cert-screenshot-hint">
+      📸 <strong>Screenshot:</strong> Windows: <strong>Win + Shift + S</strong> &nbsp;|&nbsp; Mac: <strong>Cmd + Shift + 4</strong> &nbsp;|&nbsp; Mobile: <strong>Power + Volume Down</strong>
+    </div>
+
+    <div class="certificate-wrapper">
+      <div class="certificate">
+        <span class="cert-corner tl">✦</span><span class="cert-corner tr">✦</span>
+        <span class="cert-corner bl">✦</span><span class="cert-corner br">✦</span>
+        <div class="cert-border-inner">
+          <div class="cert-logo">📖</div>
+          <div class="cert-app-name">MAINLINE</div>
+          <div class="cert-divider"><span>CERTIFICATE OF ACHIEVEMENT</span></div>
+          <p class="cert-presents">This certifies that</p>
+          <div class="cert-name" id="cert-player-name">Champion</div>
+          <p class="cert-for">has achieved a <strong style="color:var(--gold)">PERFECT SCORE — 60/60</strong> in the Mainline Reading Comprehension Challenge, demonstrating outstanding mastery across <strong style="color:var(--text)">Mathematics, Science, History, and English</strong>.</p>
+          <div class="cert-score-row">
+            <div class="cert-score-item">
+              <div class="cscore-label">SCORE</div>
+              <div class="cscore-val">60/60</div>
+            </div>
+            <div class="cert-score-item">
+              <div class="cscore-label">ACCURACY</div>
+              <div class="cscore-val">100%</div>
+            </div>
+            <div class="cert-score-item">
+              <div class="cscore-label">GRADE</div>
+              <div class="cscore-val">A</div>
+            </div>
+            <div class="cert-score-item">
+              <div class="cscore-label">ATTEMPT #</div>
+              <div class="cscore-val" id="cert-attempt-num">1</div>
+            </div>
+          </div>
+          <div class="cert-divider"><span>✦</span></div>
+          <div class="cert-seal">🏅</div>
+          <div class="cert-seal-text" style="margin-top:6px">OFFICIALLY AWARDED</div>
+          <p class="cert-date" id="cert-date" style="margin-top:12px">—</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── FEEDBACK embedded on same page ── -->
+    <div class="feedback-section">
+      <h3>💬 Share Your Feedback</h3>
+      <p>Tell us what you think about Mainline! Your input helps us improve.</p>
+
+      <div id="feedback-form-state">
+        <div class="fb-name-row">
+          <label class="feedback-label">👤 Your Name (also appears on certificate)</label>
+          <input class="feedback-input" type="text" id="fb-name" placeholder="Enter your name…" maxlength="60"
+                 oninput="updateCertName(this.value)" />
+        </div>
+
+        <div class="feedback-q-block">
+          <div class="feedback-q-text">1. How would you rate your overall experience with Mainline?</div>
+          <div class="star-row" id="fb-rating-row">
+            <button class="star-btn" onclick="selectStar(1)" data-val="1">⭐ <span>1</span></button>
+            <button class="star-btn" onclick="selectStar(2)" data-val="2">⭐ <span>2</span></button>
+            <button class="star-btn" onclick="selectStar(3)" data-val="3">⭐ <span>3</span></button>
+            <button class="star-btn" onclick="selectStar(4)" data-val="4">⭐ <span>4</span></button>
+            <button class="star-btn" onclick="selectStar(5)" data-val="5">⭐ <span>5</span></button>
+          </div>
+        </div>
+
+        <div class="feedback-q-block">
+          <div class="feedback-q-text">2. How do you feel after completing Mainline?</div>
+          <div class="emoji-row" id="fb-feel-row">
+            <button class="emoji-btn" onclick="selectFeel('excited')" data-val="excited">🤩<span class="emoji-label">Excited</span></button>
+            <button class="emoji-btn" onclick="selectFeel('happy')" data-val="happy">😊<span class="emoji-label">Happy</span></button>
+            <button class="emoji-btn" onclick="selectFeel('neutral')" data-val="neutral">😐<span class="emoji-label">Neutral</span></button>
+            <button class="emoji-btn" onclick="selectFeel('challenged')" data-val="challenged">🤔<span class="emoji-label">Challenged</span></button>
+            <button class="emoji-btn" onclick="selectFeel('frustrated')" data-val="frustrated">😤<span class="emoji-label">Frustrated</span></button>
+          </div>
+        </div>
+
+        <div class="feedback-q-block">
+          <div class="feedback-q-text">3. Would you recommend Mainline to a friend or classmate?</div>
+          <div class="option-row" id="fb-rec-row">
+            <button class="option-btn" onclick="selectRec('definitely')" data-val="definitely"><span class="opt-dot"></span> Yes, definitely! I'd recommend it right away.</button>
+            <button class="option-btn" onclick="selectRec('probably')" data-val="probably"><span class="opt-dot"></span> Probably yes — it's pretty good.</button>
+            <button class="option-btn" onclick="selectRec('unsure')" data-val="unsure"><span class="opt-dot"></span> I'm not sure yet.</button>
+            <button class="option-btn" onclick="selectRec('no')" data-val="no"><span class="opt-dot"></span> No, not really.</button>
+          </div>
+        </div>
+
+        <p class="feedback-error" id="fb-error">⚠️ Please enter your name and answer all three questions.</p>
+        <div style="text-align:center;margin-top:20px">
+          <button class="btn btn-primary" onclick="submitFeedback()">✅ Submit Feedback</button>
+        </div>
+      </div>
+
+      <!-- Thank you state -->
+      <div id="feedback-thankyou-state" style="display:none">
+        <div class="feedback-thankyou">
+          <div class="ty-icon">🎉</div>
+          <h3>Thank You, <span id="ty-name">Champion</span>!</h3>
+          <p>Your feedback has been received. We appreciate you sharing your thoughts on Mainline!</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="cert-actions">
+      <button class="btn btn-ghost" onclick="startGame()">🔄 Play Again</button>
+      <button class="btn btn-ghost" onclick="goHome()">🏠 Home</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<!-- ============================================================
+     SCRIPT
+============================================================ -->
+<script>
+/* ================================================================
+   QUESTION BANK — 4 subjects × 5 paragraphs in FIXED ORDER
+================================================================ */
+const SUBJECTS = [
+  { key: 'Math',    label: 'Math',    icon: '🔢' },
+  { key: 'Science', label: 'Science', icon: '🔬' },
+  { key: 'History', label: 'History', icon: '🏛️' },
+  { key: 'English', label: 'English', icon: '📝' }
+];
+
+const QUESTION_BANK = {
+  Math: [
+    {
+      paragraph: "Fractions represent parts of a whole. The number on top is called the numerator, and the number on the bottom is called the denominator. To add fractions with the same denominator, you simply add the numerators together and keep the denominator the same. For example, 1/4 + 2/4 = 3/4. However, when denominators are different, you must first find a common denominator before adding.",
+      questions: [
+        { q: "What is the name of the number at the bottom of a fraction?", answers: [{ text: "Numerator", correct: false }, { text: "Denominator", correct: true }, { text: "Quotient", correct: false }] },
+        { q: "What is 2/5 + 1/5?", answers: [{ text: "3/10", correct: false }, { text: "3/5", correct: true }, { text: "2/5", correct: false }] },
+        { q: "What must you do before adding fractions with different denominators?", answers: [{ text: "Multiply the numerators", correct: false }, { text: "Subtract the denominators", correct: false }, { text: "Find a common denominator", correct: true }] }
+      ]
+    },
+    {
+      paragraph: "The Pythagorean theorem states that in a right triangle, the square of the hypotenuse equals the sum of the squares of the other two sides. This is written as a² + b² = c², where c is the hypotenuse — the side opposite the right angle and always the longest side. This theorem was famously proven and used by ancient Greek mathematician Pythagoras around 570 BC.",
+      questions: [
+        { q: "What does 'c' represent in the Pythagorean theorem?", answers: [{ text: "The shortest side", correct: false }, { text: "The hypotenuse", correct: true }, { text: "Any side of the triangle", correct: false }] },
+        { q: "If a = 3 and b = 4, what is c?", answers: [{ text: "5", correct: true }, { text: "7", correct: false }, { text: "12", correct: false }] },
+        { q: "Who is the Pythagorean theorem named after?", answers: [{ text: "Aristotle", correct: false }, { text: "Euclid", correct: false }, { text: "Pythagoras", correct: true }] }
+      ]
+    },
+    {
+      paragraph: "Prime numbers are whole numbers greater than 1 that have no divisors other than 1 and themselves. The number 2 is the only even prime number, because all other even numbers are divisible by 2. Numbers like 4, 6, 8 and 9 are called composite numbers because they have more than two factors. The first five prime numbers are 2, 3, 5, 7, and 11.",
+      questions: [
+        { q: "What makes a number a prime number?", answers: [{ text: "It is divisible by 2", correct: false }, { text: "It has exactly two factors: 1 and itself", correct: true }, { text: "It is an odd number", correct: false }] },
+        { q: "Why is 2 special among prime numbers?", answers: [{ text: "It is the smallest number", correct: false }, { text: "It is the only even prime number", correct: true }, { text: "It is divisible by 4", correct: false }] },
+        { q: "Which of these is a composite number?", answers: [{ text: "7", correct: false }, { text: "11", correct: false }, { text: "9", correct: true }] }
+      ]
+    },
+    {
+      paragraph: "Percentages are a way of expressing a number as a fraction of 100. The word percent comes from the Latin 'per centum', meaning 'per hundred'. To convert a fraction to a percentage, divide the numerator by the denominator and multiply by 100. For example, 3/4 becomes 75% because 3 ÷ 4 = 0.75 × 100 = 75. Percentages are widely used in everyday life, such as sales discounts, interest rates, and test scores.",
+      questions: [
+        { q: "What does 'percent' literally mean?", answers: [{ text: "Per thousand", correct: false }, { text: "Per hundred", correct: true }, { text: "Per ten", correct: false }] },
+        { q: "What is 1/2 as a percentage?", answers: [{ text: "25%", correct: false }, { text: "75%", correct: false }, { text: "50%", correct: true }] },
+        { q: "Which of these is a real-world use of percentages?", answers: [{ text: "Measuring weight in kilograms", correct: false }, { text: "Expressing a discount in a store", correct: true }, { text: "Naming geometric shapes", correct: false }] }
+      ]
+    },
+    {
+      paragraph: "The order of operations is a set of rules that tells us the sequence in which mathematical operations should be performed. The standard order, remembered by the acronym PEMDAS, stands for Parentheses, Exponents, Multiplication, Division, Addition, and Subtraction. For example, in the expression 2 + 3 × 4, you multiply first to get 12, then add 2, giving you 14 — not 20, which would be the wrong answer if you added first.",
+      questions: [
+        { q: "What does the 'P' in PEMDAS stand for?", answers: [{ text: "Power", correct: false }, { text: "Parentheses", correct: true }, { text: "Plus", correct: false }] },
+        { q: "What is the correct answer to 2 + 3 × 4?", answers: [{ text: "20", correct: false }, { text: "14", correct: true }, { text: "9", correct: false }] },
+        { q: "According to PEMDAS, what comes before addition?", answers: [{ text: "Subtraction only", correct: false }, { text: "Nothing — addition goes first", correct: false }, { text: "Multiplication and division", correct: true }] }
+      ]
+    }
+  ],
+  Science: [
+    {
+      paragraph: "Photosynthesis is the process by which green plants, algae, and some bacteria use sunlight, water, and carbon dioxide to produce their own food in the form of glucose. This process takes place mainly in the chloroplasts of plant cells, where a green pigment called chlorophyll absorbs sunlight. Oxygen is released as a byproduct, which is why plants are crucial to life on Earth — they produce the oxygen that animals and humans breathe.",
+      questions: [
+        { q: "Where does photosynthesis mainly take place in a plant cell?", answers: [{ text: "The nucleus", correct: false }, { text: "The chloroplast", correct: true }, { text: "The mitochondria", correct: false }] },
+        { q: "What is the byproduct of photosynthesis that animals need?", answers: [{ text: "Carbon dioxide", correct: false }, { text: "Glucose", correct: false }, { text: "Oxygen", correct: true }] },
+        { q: "Which pigment in chloroplasts absorbs sunlight?", answers: [{ text: "Melanin", correct: false }, { text: "Hemoglobin", correct: false }, { text: "Chlorophyll", correct: true }] }
+      ]
+    },
+    {
+      paragraph: "The water cycle, also known as the hydrological cycle, describes the continuous movement of water on, above, and below the surface of the Earth. The main stages include evaporation, condensation, precipitation, and collection. Water evaporates from the ocean and land into the atmosphere as water vapor, cools and condenses into clouds, then falls back to Earth as rain or snow. This cycle ensures the constant redistribution of freshwater across the planet.",
+      questions: [
+        { q: "What is another name for the water cycle?", answers: [{ text: "Carbon cycle", correct: false }, { text: "Hydrological cycle", correct: true }, { text: "Nitrogen cycle", correct: false }] },
+        { q: "What happens to water vapor when it rises and cools?", answers: [{ text: "It evaporates", correct: false }, { text: "It freezes into ice", correct: false }, { text: "It condenses into clouds", correct: true }] },
+        { q: "What is the stage when water falls back to Earth from clouds?", answers: [{ text: "Evaporation", correct: false }, { text: "Precipitation", correct: true }, { text: "Collection", correct: false }] }
+      ]
+    },
+    {
+      paragraph: "The human digestive system breaks down food into nutrients that the body can use for energy, growth, and repair. Digestion begins in the mouth, where teeth break food into smaller pieces and saliva begins breaking down starches. From there, food travels down the esophagus to the stomach, where acids continue the breakdown. The small intestine absorbs most nutrients, while the large intestine absorbs water and eliminates waste.",
+      questions: [
+        { q: "Where does digestion begin?", answers: [{ text: "The stomach", correct: false }, { text: "The small intestine", correct: false }, { text: "The mouth", correct: true }] },
+        { q: "What does the small intestine primarily do?", answers: [{ text: "Store waste", correct: false }, { text: "Absorb nutrients", correct: true }, { text: "Produce saliva", correct: false }] },
+        { q: "What role does saliva play in digestion?", answers: [{ text: "It breaks down fats", correct: false }, { text: "It begins breaking down starches", correct: true }, { text: "It absorbs water", correct: false }] }
+      ]
+    },
+    {
+      paragraph: "Newton's three laws of motion form the foundation of classical mechanics. The first law, the law of inertia, states that an object at rest stays at rest, and an object in motion stays in motion unless acted on by an external force. The second law states that force equals mass times acceleration (F = ma). The third law states that for every action there is an equal and opposite reaction — like a rocket expelling gas downward to propel itself upward.",
+      questions: [
+        { q: "What is Newton's first law also known as?", answers: [{ text: "The law of gravity", correct: false }, { text: "The law of inertia", correct: true }, { text: "The law of acceleration", correct: false }] },
+        { q: "What does F = ma represent?", answers: [{ text: "Newton's first law", correct: false }, { text: "Newton's third law", correct: false }, { text: "Newton's second law", correct: true }] },
+        { q: "A rocket moving upward by expelling gas downward is an example of which law?", answers: [{ text: "The law of inertia", correct: false }, { text: "The law of gravity", correct: false }, { text: "Newton's third law", correct: true }] }
+      ]
+    },
+    {
+      paragraph: "Cells are the basic building blocks of all living things. There are two main types: prokaryotic cells, which lack a nucleus, and eukaryotic cells, which contain a nucleus enclosed in a membrane. Bacteria are prokaryotes, while animals, plants, and fungi are made of eukaryotic cells. Every cell contains genetic material (DNA) that controls the cell's activities. The cell membrane surrounds all cells and controls what goes in and out.",
+      questions: [
+        { q: "What distinguishes eukaryotic from prokaryotic cells?", answers: [{ text: "Eukaryotic cells have no DNA", correct: false }, { text: "Eukaryotic cells have a nucleus enclosed in a membrane", correct: true }, { text: "Eukaryotic cells are smaller", correct: false }] },
+        { q: "What controls what enters and exits a cell?", answers: [{ text: "The nucleus", correct: false }, { text: "The DNA", correct: false }, { text: "The cell membrane", correct: true }] },
+        { q: "Which organism is made of prokaryotic cells?", answers: [{ text: "A mushroom", correct: false }, { text: "A bacterium", correct: true }, { text: "A plant", correct: false }] }
+      ]
+    }
+  ],
+  History: [
+    {
+      paragraph: "The ancient Egyptian civilization flourished along the Nile River for over 3,000 years, making it one of the longest-lasting cultures in human history. The Egyptians are renowned for their monumental architecture, including the Great Pyramids at Giza, which were built as tombs for pharaohs. The pharaoh was considered both a king and a god. Egyptians developed one of the earliest writing systems called hieroglyphics, using symbols to represent sounds and ideas.",
+      questions: [
+        { q: "Along which river did ancient Egyptian civilization flourish?", answers: [{ text: "The Amazon", correct: false }, { text: "The Nile", correct: true }, { text: "The Tigris", correct: false }] },
+        { q: "What was the purpose of the Great Pyramids?", answers: [{ text: "Temples for worship", correct: false }, { text: "Tombs for pharaohs", correct: true }, { text: "Storage for grain", correct: false }] },
+        { q: "What was the ancient Egyptian writing system called?", answers: [{ text: "Cuneiform", correct: false }, { text: "Latin", correct: false }, { text: "Hieroglyphics", correct: true }] }
+      ]
+    },
+    {
+      paragraph: "World War II lasted from 1939 to 1945 and was the deadliest conflict in human history, involving over 30 countries and resulting in an estimated 70 to 85 million deaths. The war began when Nazi Germany under Adolf Hitler invaded Poland on September 1, 1939. The Allied powers — including the United States, the United Kingdom, the Soviet Union, and France — fought against the Axis powers of Germany, Italy, and Japan. The war ended in Europe with Germany's surrender on May 8, 1945 (V-E Day).",
+      questions: [
+        { q: "When did World War II begin?", answers: [{ text: "1941", correct: false }, { text: "1939", correct: true }, { text: "1935", correct: false }] },
+        { q: "Which country did Germany invade to trigger the war?", answers: [{ text: "France", correct: false }, { text: "Russia", correct: false }, { text: "Poland", correct: true }] },
+        { q: "What is V-E Day?", answers: [{ text: "The day Japan surrendered", correct: false }, { text: "The day Germany surrendered in Europe", correct: true }, { text: "The day the US joined the war", correct: false }] }
+      ]
+    },
+    {
+      paragraph: "The Renaissance was a cultural and intellectual movement that began in Italy during the 14th century and spread across Europe, lasting through the 17th century. It marked a revival of interest in the classical art, literature, and philosophy of ancient Greece and Rome. Key Renaissance figures include Leonardo da Vinci, Michelangelo, and Raphael in art, and Galileo Galilei in science. The invention of the printing press by Johannes Gutenberg around 1440 helped spread Renaissance ideas rapidly across Europe.",
+      questions: [
+        { q: "Where did the Renaissance begin?", answers: [{ text: "France", correct: false }, { text: "England", correct: false }, { text: "Italy", correct: true }] },
+        { q: "Which invention helped spread Renaissance ideas across Europe?", answers: [{ text: "The telescope", correct: false }, { text: "The printing press", correct: true }, { text: "The compass", correct: false }] },
+        { q: "Leonardo da Vinci was a key figure of which movement?", answers: [{ text: "The Enlightenment", correct: false }, { text: "The Renaissance", correct: true }, { text: "The Industrial Revolution", correct: false }] }
+      ]
+    },
+    {
+      paragraph: "The American Revolution (1775–1783) was a political and military struggle through which the thirteen American colonies broke free from British rule. Tensions built over issues like taxation without representation in the British Parliament. The Declaration of Independence, largely written by Thomas Jefferson, was adopted on July 4, 1776, declaring the colonies' freedom. With French support, the American forces led by General George Washington defeated the British, resulting in the 1783 Treaty of Paris, which recognized American independence.",
+      questions: [
+        { q: "What was a major cause of the American Revolution?", answers: [{ text: "Disputes over land in Canada", correct: false }, { text: "Taxation without representation", correct: true }, { text: "Religious conflicts", correct: false }] },
+        { q: "Who primarily wrote the Declaration of Independence?", answers: [{ text: "George Washington", correct: false }, { text: "Benjamin Franklin", correct: false }, { text: "Thomas Jefferson", correct: true }] },
+        { q: "Which treaty officially recognized American independence?", answers: [{ text: "Treaty of Versailles", correct: false }, { text: "Treaty of Paris (1783)", correct: true }, { text: "Treaty of Ghent", correct: false }] }
+      ]
+    },
+    {
+      paragraph: "The Industrial Revolution began in Britain in the late 18th century and transformed the way goods were produced. Before this period, most manufacturing was done by hand in homes or small workshops. The invention of the steam engine by James Watt in the 1760s was a pivotal development, enabling factories to run machinery powered by coal. Urbanization increased as people moved from rural areas to cities in search of factory work, dramatically changing social and economic life.",
+      questions: [
+        { q: "Where did the Industrial Revolution begin?", answers: [{ text: "The United States", correct: false }, { text: "France", correct: false }, { text: "Britain", correct: true }] },
+        { q: "Who improved the steam engine in the 1760s?", answers: [{ text: "Isaac Newton", correct: false }, { text: "James Watt", correct: true }, { text: "Thomas Edison", correct: false }] },
+        { q: "What major social change resulted from the Industrial Revolution?", answers: [{ text: "People moved from cities to farms", correct: false }, { text: "The population decreased sharply", correct: false }, { text: "Urbanization increased as people moved to cities", correct: true }] }
+      ]
+    }
+  ],
+  English: [
+    {
+      paragraph: "A metaphor is a figure of speech that directly compares two unlike things without using the words 'like' or 'as'. For example, saying 'Life is a journey' is a metaphor because it compares life to a journey without a direct comparison word. This is different from a simile, which uses 'like' or 'as' — such as 'Life is like a journey'. Metaphors help writers create vivid imagery and make abstract ideas easier to understand by linking them to familiar concepts.",
+      questions: [
+        { q: "What is a metaphor?", answers: [{ text: "A comparison using 'like' or 'as'", correct: false }, { text: "A direct comparison of two unlike things", correct: true }, { text: "A type of rhyme scheme", correct: false }] },
+        { q: "How is a simile different from a metaphor?", answers: [{ text: "Similes do not compare things", correct: false }, { text: "Similes use 'like' or 'as' in the comparison", correct: true }, { text: "Similes only describe people", correct: false }] },
+        { q: "Which sentence is a metaphor?", answers: [{ text: "She runs like the wind", correct: false }, { text: "The wind howled loudly", correct: false }, { text: "Time is a thief", correct: true }] }
+      ]
+    },
+    {
+      paragraph: "A noun is a word that names a person, place, thing, or idea. There are several types of nouns: proper nouns name specific people or places (like 'Paris' or 'Einstein') and are always capitalized; common nouns refer to general things (like 'city' or 'scientist'); abstract nouns name ideas or feelings (like 'freedom' or 'love'); and collective nouns name groups (like 'team' or 'flock'). Understanding nouns is essential to mastering sentence structure in English.",
+      questions: [
+        { q: "Which type of noun always starts with a capital letter?", answers: [{ text: "Abstract noun", correct: false }, { text: "Proper noun", correct: true }, { text: "Collective noun", correct: false }] },
+        { q: "Which of these is an abstract noun?", answers: [{ text: "Paris", correct: false }, { text: "Table", correct: false }, { text: "Freedom", correct: true }] },
+        { q: "What does a collective noun refer to?", answers: [{ text: "An idea or feeling", correct: false }, { text: "A group of things", correct: true }, { text: "A specific named place", correct: false }] }
+      ]
+    },
+    {
+      paragraph: "William Shakespeare (1564–1616) is widely considered the greatest writer in the English language and the world's greatest dramatist. He wrote 37 plays, 154 sonnets, and several poems. His works are grouped into tragedies (such as Hamlet and Macbeth), comedies (such as A Midsummer Night's Dream), and histories (such as Henry V). Shakespeare's plays explore timeless themes like love, jealousy, ambition, and betrayal. His writing has influenced literature, language, and culture for over 400 years.",
+      questions: [
+        { q: "How many plays did Shakespeare write?", answers: [{ text: "37", correct: true }, { text: "154", correct: false }, { text: "52", correct: false }] },
+        { q: "Which of these is one of Shakespeare's tragedies?", answers: [{ text: "A Midsummer Night's Dream", correct: false }, { text: "Hamlet", correct: true }, { text: "Henry V", correct: false }] },
+        { q: "What type of play is 'A Midsummer Night's Dream'?", answers: [{ text: "A tragedy", correct: false }, { text: "A history", correct: false }, { text: "A comedy", correct: true }] }
+      ]
+    },
+    {
+      paragraph: "The main parts of a story are the exposition, rising action, climax, falling action, and resolution. The exposition introduces the characters and setting. The rising action builds tension through conflict and events. The climax is the most exciting or turning point of the story. The falling action shows what happens as a result of the climax. The resolution ties up loose ends and concludes the story. These five elements are known as the plot diagram or story arc.",
+      questions: [
+        { q: "What happens during the exposition of a story?", answers: [{ text: "The conflict is resolved", correct: false }, { text: "The story reaches its most exciting point", correct: false }, { text: "Characters and setting are introduced", correct: true }] },
+        { q: "What is the climax of a story?", answers: [{ text: "The conclusion of the story", correct: false }, { text: "The most exciting or turning point", correct: true }, { text: "The introduction of the characters", correct: false }] },
+        { q: "Which term describes the five-part structure of a story?", answers: [{ text: "Story arc / plot diagram", correct: true }, { text: "Story glossary", correct: false }, { text: "Narrative clause", correct: false }] }
+      ]
+    },
+    {
+      paragraph: "Punctuation marks are symbols used in writing to clarify meaning, indicate pauses, and separate ideas. The period (.) marks the end of a sentence. The comma (,) separates items in a list or clauses within a sentence. The question mark (?) ends an interrogative sentence. The exclamation mark (!) shows strong emotion or emphasis. The apostrophe (') indicates possession or contractions. Correct punctuation is essential to ensure that writing is clear and easy to understand.",
+      questions: [
+        { q: "Which punctuation mark is used to end a question?", answers: [{ text: "Period (.)", correct: false }, { text: "Question mark (?)", correct: true }, { text: "Exclamation mark (!)", correct: false }] },
+        { q: "What are the two main uses of an apostrophe?", answers: [{ text: "Pausing and listing", correct: false }, { text: "Ending sentences and showing emotion", correct: false }, { text: "Showing possession and forming contractions", correct: true }] },
+        { q: "What does a comma do in a sentence?", answers: [{ text: "Ends the sentence", correct: false }, { text: "Separates items in a list or clauses", correct: true }, { text: "Shows strong emotion", correct: false }] }
+      ]
+    }
+  ]
+};
+
+/* ================================================================
+   PERSISTENT STATS (in-session only — resets on page reload)
+================================================================ */
+let stats = {
+  attempts: 0,
+  bestScore: null,
+  perfectRuns: 0
+};
+
+/* ================================================================
+   GAME STATE
+================================================================ */
+let state = {
+  subjectIndex: 0,
+  paraIndex: 0,
+  score: 0,
+  answered: 0,
+  correct: 0,
+  wrong: 0,
+  subjectScores: { Math: 0, Science: 0, History: 0, English: 0 },
+  timer: null,
+  timeLeft: 50,
+  phase: 'read',
+  answeredThisRound: [false, false, false],
+  waitingTransition: false,
+  fbRating: null,
+  fbFeel: null,
+  fbRec: null
+};
+
+const TOTAL_Q   = 60;
+const PARA_PER_SUBJ = 5;
+const Q_PER_PARA    = 3;
+
+/* ================================================================
+   HELPERS
+================================================================ */
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  window.scrollTo(0, 0);
+}
+
+function showToast(msg, type) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show ' + (type === 'correct' ? 'correct-toast' : 'wrong-toast');
+  clearTimeout(window._toastTimer);
+  window._toastTimer = setTimeout(() => t.classList.remove('show'), 1600);
+}
+
+function currentSubjectKey() { return SUBJECTS[state.subjectIndex].key; }
+function totalParasCompleted() { return state.subjectIndex * PARA_PER_SUBJ + state.paraIndex; }
+
+/* ================================================================
+   START GAME
+================================================================ */
+function startGame() {
+  clearInterval(state.timer);
+  stats.attempts++;
+
+  state.subjectIndex = 0;
+  state.paraIndex    = 0;
+  state.score        = 0;
+  state.answered     = 0;
+  state.correct      = 0;
+  state.wrong        = 0;
+  state.subjectScores = { Math: 0, Science: 0, History: 0, English: 0 };
+  state.waitingTransition = false;
+
+  updateAttemptsUI();
+  showPage('game');
+  buildSubjectProgressUI();
+  loadRound();
+}
+
+/* ================================================================
+   SUBJECT PROGRESS BAR
+================================================================ */
+function buildSubjectProgressUI() {
+  const wrap = document.getElementById('subject-progress-wrap');
+  wrap.innerHTML = '';
+  SUBJECTS.forEach((s, i) => {
+    if (i > 0) {
+      const arrow = document.createElement('span');
+      arrow.className = 'subj-prog-arrow';
+      arrow.textContent = '→';
+      wrap.appendChild(arrow);
+    }
+    const item = document.createElement('div');
+    item.className = 'subj-prog-item';
+    item.id = 'sp-item-' + i;
+    item.innerHTML = `<div class="subj-prog-dot" id="sp-dot-${i}"></div><span class="subj-prog-label" id="sp-label-${i}">${s.icon} ${s.label}</span>`;
+    wrap.appendChild(item);
+  });
+  refreshSubjectProgressUI();
+}
+
+function refreshSubjectProgressUI() {
+  SUBJECTS.forEach((s, i) => {
+    const dot   = document.getElementById('sp-dot-' + i);
+    const label = document.getElementById('sp-label-' + i);
+    if (!dot) return;
+    dot.className   = 'subj-prog-dot';
+    label.className = 'subj-prog-label';
+    if (i < state.subjectIndex) {
+      dot.classList.add('done');
+      label.classList.add('done-label');
+    } else if (i === state.subjectIndex) {
+      dot.classList.add('active');
+      label.classList.add('active-label');
+    }
+  });
+}
+
+/* ================================================================
+   LOAD ROUND
+================================================================ */
+function loadRound() {
+  clearInterval(state.timer);
+  state.timeLeft = 50;
+  state.phase = 'read';
+  state.answeredThisRound = [false, false, false];
+  updateTimerDisplay();
+
+  const subjKey = currentSubjectKey();
+  const subj    = SUBJECTS[state.subjectIndex];
+  const set     = QUESTION_BANK[subjKey][state.paraIndex];
+
+  // Total question numbers for display
+  const qStart = state.subjectIndex * PARA_PER_SUBJ * Q_PER_PARA + state.paraIndex * Q_PER_PARA + 1;
+  const qEnd   = qStart + 2;
+  const totalParas = totalParasCompleted() + 1; // 1-based para count out of 20
+
+  // Header
+  document.getElementById('hdr-subject').textContent = `${subj.icon} ${subj.label}`;
+  document.getElementById('hdr-q-counter').textContent = `Q ${qStart}–${qEnd} / ${TOTAL_Q}`;
+  updateScoreDisplay();
+
+  // Progress bar (out of 20 paragraphs)
+  document.getElementById('progress-fill').style.width = (totalParasCompleted() / 20 * 100) + '%';
+  refreshSubjectProgressUI();
+
+  // Hide transition, show read phase
+  document.getElementById('phase-transition').style.display = 'none';
+  document.getElementById('phase-read').style.display = 'block';
+  document.getElementById('phase-answer').style.display = 'none';
+
+  // Paragraph text
+  document.getElementById('para-text').textContent = set.paragraph;
+
+  // Build questions
+  const container = document.getElementById('questions-container');
+  container.innerHTML = '';
+  set.questions.forEach((q, qi) => {
+    const qNum = qStart + qi;
+    const card = document.createElement('div');
+    card.className = 'question-card';
+    const letters = ['A', 'B', 'C'];
+    card.innerHTML = `<div class="question-text">Q${qNum}. ${q.q}</div>
+      <div class="answers-grid" id="answers-${qi}">
+        ${q.answers.map((a, ai) => `
+          <button class="answer-btn" onclick="selectAnswer(${qi}, ${ai})">
+            <span class="letter">${letters[ai]}</span>
+            <span>${a.text}</span>
+          </button>`).join('')}
+      </div>`;
+    container.appendChild(card);
+  });
+
+  // Next button
+  const isLastPara = state.subjectIndex === 3 && state.paraIndex === 4;
+  const isLastInSubject = state.paraIndex === 4;
+  document.getElementById('btn-next').disabled = true;
+  document.getElementById('btn-next').textContent =
+    isLastPara ? 'See Results →' :
+    isLastInSubject ? 'Next Subject →' : 'Next →';
+
+  // Start 50s read timer
+  startReadTimer();
+}
+
+/* ================================================================
+   PHASES
+================================================================ */
+function startReadTimer() {
+  state.phase = 'read';
+  clearInterval(state.timer);
+  state.timeLeft = 50;
+  updateTimerDisplay();
+  state.timer = setInterval(() => {
+    state.timeLeft--;
+    updateTimerDisplay();
+    if (state.timeLeft <= 0) {
+      clearInterval(state.timer);
+      startAnswerPhase();
+    }
+  }, 1000);
+}
+
+function startAnswerPhase() {
+  clearInterval(state.timer);
+  state.phase = 'answer';
+  state.timeLeft = 120;
+  updateTimerDisplay();
+  document.getElementById('phase-read').style.display = 'none';
+  document.getElementById('phase-answer').style.display = 'block';
+  window.scrollTo(0, 0);
+  startTimer();
+}
+
+/* ================================================================
+   ANSWER SELECTION
+================================================================ */
+function selectAnswer(qi, ai) {
+  if (state.answeredThisRound[qi]) return;
+  state.answeredThisRound[qi] = true;
+
+  const subjKey = currentSubjectKey();
+  const set = QUESTION_BANK[subjKey][state.paraIndex];
+  const q   = set.questions[qi];
+  const isCorrect = q.answers[ai].correct;
+
+  state.answered++;
+  if (isCorrect) {
+    state.score++;
+    state.correct++;
+    state.subjectScores[subjKey]++;
+  } else {
+    state.wrong++;
+  }
+
+  const grid = document.getElementById(`answers-${qi}`);
+  grid.querySelectorAll('.answer-btn').forEach((btn, idx) => {
+    btn.disabled = true;
+    if (q.answers[idx].correct) btn.classList.add('correct');
+    else if (idx === ai && !isCorrect) btn.classList.add('wrong');
+  });
+
+  showToast(isCorrect ? '✅ Correct!' : '❌ Wrong!', isCorrect ? 'correct' : 'wrong');
+  updateScoreDisplay();
+
+  if (state.answeredThisRound.every(Boolean)) {
+    document.getElementById('btn-next').disabled = false;
+  }
+}
+
+function updateScoreDisplay() {
+  document.getElementById('hdr-score').textContent = `Score: ${state.score}/${state.answered}`;
+}
+
+/* ================================================================
+   TIMER
+================================================================ */
+function startTimer() {
+  clearInterval(state.timer);
+  state.timer = setInterval(() => {
+    state.timeLeft--;
+    updateTimerDisplay();
+    if (state.timeLeft <= 0) { clearInterval(state.timer); autoFinishRound(); }
+  }, 1000);
+}
+
+function updateTimerDisplay() {
+  const el = document.getElementById('timer-display');
+  el.textContent = state.timeLeft;
+  const warnThreshold = state.phase === 'read' ? 10 : 30;
+  el.className = 'timer-val' + (state.timeLeft <= warnThreshold ? ' warning' : '');
+}
+
+function autoFinishRound() {
+  const subjKey = currentSubjectKey();
+  const set = QUESTION_BANK[subjKey][state.paraIndex];
+  set.questions.forEach((q, qi) => {
+    if (!state.answeredThisRound[qi]) {
+      state.answeredThisRound[qi] = true;
+      state.answered++;
+      state.wrong++;
+      const grid = document.getElementById(`answers-${qi}`);
+      if (grid) grid.querySelectorAll('.answer-btn').forEach((btn, idx) => {
+        btn.disabled = true;
+        if (q.answers[idx].correct) btn.classList.add('correct');
+      });
+    }
+  });
+  updateScoreDisplay();
+  document.getElementById('btn-next').disabled = false;
+  showToast("⏱️ Time's up!", 'wrong');
+}
+
+/* ================================================================
+   NEXT ROUND — handles para advance, subject transition, results
+================================================================ */
+function nextRound() {
+  clearInterval(state.timer);
+
+  const isLastPara      = state.subjectIndex === 3 && state.paraIndex === 4;
+  const isLastInSubject = state.paraIndex === 4;
+
+  if (isLastPara) {
+    showResults();
+    return;
+  }
+
+  if (isLastInSubject) {
+    // Move to next subject — show transition screen
+    clearInterval(state.timer);
+    const nextSubjIndex = state.subjectIndex + 1;
+    const nextSubj = SUBJECTS[nextSubjIndex];
+    document.getElementById('phase-read').style.display = 'none';
+    document.getElementById('phase-answer').style.display = 'none';
+    document.getElementById('phase-transition').style.display = 'block';
+    document.getElementById('st-icon').textContent  = nextSubj.icon;
+    document.getElementById('st-title').textContent = `Up Next: ${nextSubj.label}`;
+    document.getElementById('st-desc').textContent  = `You've completed ${SUBJECTS[state.subjectIndex].label}! Get ready for ${nextSubj.label}.`;
+    state.waitingTransition = true;
+  } else {
+    state.paraIndex++;
+    loadRound();
+  }
+}
+
+function continueAfterTransition() {
+  if (!state.waitingTransition) return;
+  state.waitingTransition = false;
+  state.subjectIndex++;
+  state.paraIndex = 0;
+  loadRound();
+}
+
+/* ================================================================
+   RESULTS
+================================================================ */
+function showResults() {
+  const total = TOTAL_Q;
+  const pct   = Math.round((state.score / total) * 100);
+  const isPerfect = state.score === total;
+
+  // Update stats
+  if (stats.bestScore === null || state.score > stats.bestScore) stats.bestScore = state.score;
+  if (isPerfect) stats.perfectRuns++;
+  updateAttemptsUI();
+
+  showPage('results');
+
+  // Grade
+  let grade, gradeColor;
+  if (pct >= 90)      { grade = 'A'; gradeColor = '#00e5c0'; }
+  else if (pct >= 80) { grade = 'B'; gradeColor = '#5b8cff'; }
+  else if (pct >= 70) { grade = 'C'; gradeColor = '#ffd166'; }
+  else if (pct >= 60) { grade = 'D'; gradeColor = '#ff9966'; }
+  else                { grade = 'F'; gradeColor = '#ff6b9d'; }
+
+  let medal, title, advice;
+  if (isPerfect)      { medal = '🏆'; title = 'Perfect Score!';   advice = 'Flawless across ALL subjects! You have earned your certificate. You are a true Mainline champion!'; }
+  else if (pct >= 80) { medal = '🥇'; title = 'Outstanding!';     advice = "Incredible effort! You're very close to perfection. Keep pushing — the certificate awaits!"; }
+  else if (pct >= 60) { medal = '🥈'; title = 'Great Job!';       advice = "Solid performance! Review the passages you missed and aim for that perfect 60/60."; }
+  else if (pct >= 40) { medal = '🥉'; title = 'Good Effort!';     advice = "You're getting there! Read paragraphs slowly and focus on key details."; }
+  else                { medal = '📚'; title = 'Keep Practicing!'; advice = "Don't give up — every expert was once a beginner. Read, practice, and keep going!"; }
+
+  document.getElementById('medal').textContent = medal;
+  document.getElementById('result-title').textContent = title;
+  document.getElementById('result-advice').textContent = advice;
+
+  document.getElementById('res-score').textContent    = `${state.score}/${total}`;
+  document.getElementById('res-pct').textContent      = `${pct}%`;
+  document.getElementById('res-correct').textContent  = state.correct;
+  document.getElementById('res-wrong').textContent    = state.wrong;
+  document.getElementById('res-accuracy').textContent = state.answered > 0
+    ? Math.round((state.correct / state.answered) * 100) + '%' : '0%';
+
+  const badge = document.getElementById('res-grade-badge');
+  badge.textContent = grade;
+  badge.style.background = gradeColor + '22';
+  badge.style.color = gradeColor;
+  badge.style.border = `2px solid ${gradeColor}44`;
+
+  // Attempt info
+  document.getElementById('res-attempt-num').textContent  = stats.attempts;
+  document.getElementById('res-best-score').textContent   = stats.bestScore !== null ? `${stats.bestScore}/60` : '—';
+  document.getElementById('res-perfect-runs').textContent = stats.perfectRuns;
+
+  // Subject breakdown
+  const breakdownEl = document.getElementById('breakdown-rows');
+  breakdownEl.innerHTML = '';
+  SUBJECTS.forEach(s => {
+    const sc  = state.subjectScores[s.key];
+    const pct2 = Math.round(sc / 15 * 100);
+    const barClass = pct2 === 100 ? 'perfect' : pct2 >= 60 ? 'good' : 'poor';
+    const check = pct2 === 100 ? '✅' : pct2 >= 60 ? '🔵' : '❌';
+    breakdownEl.innerHTML += `
+      <div class="breakdown-row">
+        <div class="bd-subj">${s.icon} ${s.label}</div>
+        <div class="bd-bar-wrap"><div class="bd-bar ${barClass}" style="width:${pct2}%"></div></div>
+        <div class="bd-score">${sc}/15</div>
+        <div class="bd-check">${check}</div>
+      </div>`;
+  });
+
+  // Certificate unlock/lock area
+  const unlockArea = document.getElementById('cert-unlock-area');
+  const certBtn    = document.getElementById('btn-view-cert');
+  if (isPerfect) {
+    unlockArea.innerHTML = `
+      <div class="cert-unlock-banner">
+        <div class="cub-icon">🎓</div>
+        <h3>Certificate Unlocked!</h3>
+        <p>You scored a perfect 60/60 — your certificate is ready to view and screenshot.</p>
+      </div>`;
+    certBtn.style.display = 'inline-flex';
+  } else {
+    const needed = total - state.score;
+    unlockArea.innerHTML = `
+      <div class="cert-locked-banner">
+        🔒 <strong>Certificate locked.</strong> You need a <strong>perfect 60/60</strong> to unlock it. You missed ${needed} question${needed !== 1 ? 's' : ''}. Try again!
+      </div>`;
+    certBtn.style.display = 'none';
+  }
+
+  document.getElementById('progress-fill').style.width = '100%';
+}
+
+/* ================================================================
+   CERTIFICATE
+================================================================ */
+function showCertificate() {
+  // Reset feedback form
+  state.fbRating = null; state.fbFeel = null; state.fbRec = null;
+  document.getElementById('fb-name').value = '';
+  document.querySelectorAll('.star-btn').forEach(b => b.classList.remove('selected'));
+  document.querySelectorAll('.emoji-btn').forEach(b => b.classList.remove('selected'));
+  document.querySelectorAll('.option-btn').forEach(b => b.classList.remove('selected'));
+  document.getElementById('fb-error').style.display = 'none';
+  document.getElementById('feedback-form-state').style.display = 'block';
+  document.getElementById('feedback-thankyou-state').style.display = 'none';
+
+  // Certificate meta
+  document.getElementById('cert-player-name').textContent = 'Champion';
+  document.getElementById('cert-attempt-num').textContent = stats.attempts;
+  const now = new Date();
+  document.getElementById('cert-date').textContent = 'Issued on ' + now.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+
+  showPage('certificate');
+}
+
+/* Update certificate name live as user types */
+function updateCertName(val) {
+  const name = val.trim();
+  document.getElementById('cert-player-name').textContent = name || 'Champion';
+}
+
+/* ================================================================
+   FEEDBACK
+================================================================ */
+function selectStar(val) {
+  state.fbRating = val;
+  document.querySelectorAll('.star-btn').forEach(b => b.classList.toggle('selected', parseInt(b.dataset.val) <= val));
+}
+function selectFeel(val) {
+  state.fbFeel = val;
+  document.querySelectorAll('.emoji-btn').forEach(b => b.classList.toggle('selected', b.dataset.val === val));
+}
+function selectRec(val) {
+  state.fbRec = val;
+  document.querySelectorAll('.option-btn').forEach(b => b.classList.toggle('selected', b.dataset.val === val));
+}
+
+function submitFeedback() {
+  const name  = document.getElementById('fb-name').value.trim();
+  const errEl = document.getElementById('fb-error');
+  if (!name || !state.fbRating || !state.fbFeel || !state.fbRec) {
+    errEl.style.display = 'block';
+    errEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    return;
+  }
+  errEl.style.display = 'none';
+  document.getElementById('cert-player-name').textContent = name;
+  document.getElementById('feedback-form-state').style.display = 'none';
+  document.getElementById('feedback-thankyou-state').style.display = 'block';
+  document.getElementById('ty-name').textContent = name;
+  window.scrollTo(0, 0);
+}
+
+/* ================================================================
+   ATTEMPTS UI
+================================================================ */
+function updateAttemptsUI() {
+  const banner = document.getElementById('attempts-banner');
+  if (stats.attempts > 0) {
+    banner.style.display = 'flex';
+    document.getElementById('att-count').textContent  = stats.attempts;
+    document.getElementById('att-best').textContent   = stats.bestScore !== null ? `${stats.bestScore}/60` : '—';
+    document.getElementById('att-perfect').textContent = stats.perfectRuns;
+  }
+}
+
+/* ================================================================
+   NAVIGATION
+================================================================ */
+function goHome() {
+  clearInterval(state.timer);
+  updateAttemptsUI();
+  showPage('intro');
+}
+
+function confirmReturn() {
+  const overlay = document.createElement('div');
+  overlay.className = 'overlay';
+  overlay.id = 'return-overlay';
+  overlay.innerHTML = `
+    <div class="overlay-box">
+      <h2>⚠️ Return to Menu?</h2>
+      <p>Your current progress and score will be lost. Are you sure?</p>
+      <div class="overlay-actions">
+        <button class="btn btn-ghost" onclick="closeOverlay()">Keep Playing</button>
+        <button class="btn btn-primary" onclick="doReturn()">Yes, Return</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+}
+function closeOverlay() { const o = document.getElementById('return-overlay'); if (o) o.remove(); }
+function doReturn() { clearInterval(state.timer); closeOverlay(); stats.attempts--; goHome(); }
+</script>
+</body>
+</html>
