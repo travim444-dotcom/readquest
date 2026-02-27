@@ -1640,11 +1640,24 @@ function submitFeedback() {
   }
   errEl.style.display = 'none';
 
+  // Save feedback to localStorage
+  const now = new Date();
+  const entry = {
+    name,
+    rating: state.fbRating,
+    feel: state.fbFeel,
+    recommend: state.fbRec,
+    score: state.score + '/60',
+    date: now.toLocaleString('en-US', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+  };
+  const existing = JSON.parse(localStorage.getItem('mainline_feedback') || '[]');
+  existing.push(entry);
+  localStorage.setItem('mainline_feedback', JSON.stringify(existing));
+
   // Set certificate meta
   document.getElementById('cert-player-name').textContent = name;
   document.getElementById('ty-name').textContent = name;
   document.getElementById('cert-attempt-num').textContent = stats.attempts;
-  const now = new Date();
   document.getElementById('cert-date').textContent = 'Issued on ' + now.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
 
   showPage('certificate');
@@ -1693,20 +1706,70 @@ function devSubmit() {
   const val = document.getElementById('dev-pw-input').value;
   if (val === 'ictmalakas') {
     document.getElementById('dev-overlay').remove();
-    // Populate certificate with dev placeholder
-    document.getElementById('cert-player-name').textContent = 'Developer';
-    document.getElementById('ty-name').textContent = 'Developer';
-    document.getElementById('cert-attempt-num').textContent = '—';
-    const now = new Date();
-    document.getElementById('cert-date').textContent = 'Issued on ' + now.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-    showPage('certificate');
-    window.scrollTo(0, 0);
+    showDevPanel();
   } else {
     const err = document.getElementById('dev-error');
     err.style.display = 'block';
     document.getElementById('dev-pw-input').value = '';
     document.getElementById('dev-pw-input').focus();
   }
+}
+
+function showDevPanel() {
+  const records = JSON.parse(localStorage.getItem('mainline_feedback') || '[]');
+  const feelEmoji = { excited:'🤩', happy:'😊', neutral:'😐', challenged:'🤔', frustrated:'😤' };
+  const recLabel  = { definitely:'✅ Definitely', probably:'👍 Probably', unsure:'🤔 Unsure', no:'❌ No' };
+
+  let rows = '';
+  if (records.length === 0) {
+    rows = '<p style="color:var(--muted);text-align:center;padding:20px 0">No feedback recorded yet.</p>';
+  } else {
+    rows = records.slice().reverse().map((r, i) => `
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px 20px;margin-bottom:12px">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:8px">
+          <span style="font-family:'Syne',sans-serif;font-weight:800;font-size:1rem;color:var(--text)">👤 ${r.name}</span>
+          <span style="font-size:.75rem;color:var(--muted)">${r.date}</span>
+        </div>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;font-size:.85rem">
+          <span>⭐ Rating: <strong style="color:var(--gold)">${r.rating}/5</strong></span>
+          <span>Feeling: <strong>${feelEmoji[r.feel] || r.feel}</strong></span>
+          <span>Recommend: <strong style="color:var(--accent3)">${recLabel[r.recommend] || r.recommend}</strong></span>
+          <span>Score: <strong style="color:var(--accent)">${r.score}</strong></span>
+        </div>
+      </div>`).join('');
+  }
+
+  const overlay = document.createElement('div');
+  overlay.className = 'overlay';
+  overlay.id = 'dev-panel-overlay';
+  overlay.style.alignItems = 'flex-start';
+  overlay.style.padding = '24px 16px';
+  overlay.innerHTML = `
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:28px 24px;max-width:600px;width:100%;max-height:90vh;overflow-y:auto;animation:fadeUp .3s ease">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:10px">
+        <h2 style="font-family:'Syne',sans-serif;font-size:1.2rem;font-weight:800">📋 Feedback Records <span style="font-size:.8rem;font-weight:400;color:var(--muted)">(${records.length} total)</span></h2>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <button onclick="goToFeedbackFromDev()" class="btn btn-primary" style="padding:8px 18px;font-size:.85rem">➡️ Go to Feedback Page</button>
+          <button onclick="clearFeedback()" class="btn btn-ghost" style="padding:8px 18px;font-size:.85rem;border-color:var(--accent2);color:var(--accent2)">🗑️ Clear All</button>
+          <button onclick="document.getElementById('dev-panel-overlay').remove()" class="btn btn-ghost" style="padding:8px 18px;font-size:.85rem">✕ Close</button>
+        </div>
+      </div>
+      <div id="dev-records-list">${rows}</div>
+    </div>`;
+  document.body.appendChild(overlay);
+}
+
+function goToFeedbackFromDev() {
+  document.getElementById('dev-panel-overlay').remove();
+  showCertificate();
+  window.scrollTo(0, 0);
+}
+
+function clearFeedback() {
+  if (!confirm('Delete ALL recorded feedback? This cannot be undone.')) return;
+  localStorage.removeItem('mainline_feedback');
+  document.getElementById('dev-panel-overlay').remove();
+  showDevPanel();
 }
 
 
