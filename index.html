@@ -479,6 +479,62 @@
   .overlay-box p { color: var(--muted); font-size: .9rem; margin-bottom: 24px; line-height: 1.6; }
   .overlay-actions { display: flex; gap: 12px; justify-content: center; }
 
+  /* ── CONGRATS OVERLAY ── */
+  .congrats-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,.8); z-index: 300;
+    display: flex; align-items: center; justify-content: center; animation: fadeIn .3s ease;
+  }
+  .congrats-box {
+    background: linear-gradient(145deg, var(--card), #1a2040);
+    border: 2px solid var(--accent3); border-radius: var(--radius);
+    padding: 40px 32px; max-width: 400px; width: 90%; text-align: center;
+    box-shadow: 0 0 60px rgba(0,229,192,.2);
+    animation: fadeUp .4s ease;
+  }
+  .congrats-box .cong-icon { font-size: 4rem; margin-bottom: 12px; display: block; animation: medalDrop .6s cubic-bezier(.34,1.56,.64,1); }
+  .congrats-box h2 { font-size: 1.5rem; font-weight: 800; color: var(--accent3); margin-bottom: 8px; }
+  .congrats-box .cong-subj { font-size: 1rem; color: var(--text); margin-bottom: 6px; font-family: 'Syne', sans-serif; font-weight: 700; }
+  .congrats-box .cong-score { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 2rem; color: var(--gold); margin-bottom: 8px; }
+  .congrats-box p { color: var(--muted); font-size: .9rem; margin-bottom: 24px; line-height: 1.6; }
+  .congrats-box .btn-continue-next { background: linear-gradient(135deg, var(--accent3), #00b8a0); color: #0d0f1a; font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1rem; padding: 14px 32px; border-radius: 50px; border: none; cursor: pointer; transition: var(--transition); box-shadow: 0 4px 24px rgba(0,229,192,.3); }
+  .congrats-box .btn-continue-next:hover { transform: translateY(-2px); box-shadow: 0 8px 32px rgba(0,229,192,.4); }
+
+  /* ── FAILED SUBJECT OVERLAY ── */
+  .failed-box {
+    background: linear-gradient(145deg, var(--card), #1a1530);
+    border: 2px solid var(--accent2); border-radius: var(--radius);
+    padding: 40px 32px; max-width: 400px; width: 90%; text-align: center;
+    box-shadow: 0 0 60px rgba(255,107,157,.15);
+    animation: fadeUp .4s ease;
+  }
+  .failed-box .fail-icon { font-size: 4rem; margin-bottom: 12px; display: block; }
+  .failed-box h2 { font-size: 1.5rem; font-weight: 800; color: var(--accent2); margin-bottom: 8px; }
+  .failed-box .fail-subj { font-size: 1rem; color: var(--text); margin-bottom: 6px; font-family: 'Syne', sans-serif; font-weight: 700; }
+  .failed-box .fail-score { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 2rem; color: var(--accent2); margin-bottom: 8px; }
+  .failed-box p { color: var(--muted); font-size: .9rem; margin-bottom: 24px; line-height: 1.6; }
+
+  /* ── FEEDBACK PAGE (new separate page) ── */
+  #page-feedback { min-height: 100vh; }
+  .feedback-page-header { text-align: center; padding: 40px 0 24px; }
+  .feedback-page-header h1 { font-size: 1.8rem; font-weight: 800; margin-bottom: 8px; }
+  .feedback-page-header p { color: var(--muted); font-size: .95rem; max-width: 420px; margin: 0 auto; line-height: 1.6; }
+  .feedback-page-header .cert-teaser {
+    background: linear-gradient(135deg, rgba(255,209,102,.1), rgba(0,229,192,.07));
+    border: 1px solid rgba(255,209,102,.3); border-radius: 14px; padding: 14px 20px; margin-top: 20px;
+    font-size: .88rem; color: var(--gold); display: inline-block;
+  }
+
+  /* ── CONGRATS BANNER (transition screen) ── */
+  .congrats-banner {
+    background: linear-gradient(135deg, rgba(0,229,192,.12), rgba(91,140,255,.08));
+    border: 2px solid rgba(0,229,192,.35); border-radius: var(--radius);
+    padding: 20px 24px; text-align: center; margin-bottom: 16px;
+    animation: fadeUp .4s ease;
+  }
+  .congrats-banner .cb-icon { font-size: 2.2rem; margin-bottom: 6px; }
+  .congrats-banner h4 { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.1rem; color: var(--accent3); margin-bottom: 6px; }
+  .congrats-banner p { color: var(--muted); font-size: .88rem; }
+
   /* ── RESPONSIVE ── */
   @media (max-width: 600px) {
     .game-header { flex-wrap: wrap; gap: 10px; }
@@ -519,7 +575,11 @@
       </div>
       <div class="instruction-row">
         <div class="instr-num">4</div>
-        <p>🏆 The <strong>Certificate</strong> is only awarded for a <strong>Perfect Score — 60/60</strong> across all subjects. Aim for 100%!</p>
+        <p>🔒 <strong>Subjects are locked!</strong> You need a <strong>Perfect 15/15</strong> on each subject to unlock the next one. If you don't get a perfect score, you must retry that subject!</p>
+      </div>
+      <div class="instruction-row">
+        <div class="instr-num">5</div>
+        <p>🏆 The <strong>Certificate</strong> is only awarded for a <strong>Perfect Score — 60/60</strong>. Complete a short <strong>feedback form</strong> first to claim it!</p>
       </div>
     </div>
 
@@ -560,6 +620,9 @@
     <div class="start-area">
       <button class="btn-start" onclick="startGame()">🚀 Start Game</button>
       <p class="start-subtitle" id="start-subtitle">4 subjects · 20 paragraphs · 60 questions</p>
+      <div style="margin-top:24px">
+        <button onclick="devAccess()" style="background:transparent;border:1px solid rgba(255,255,255,.1);border-radius:50px;color:rgba(255,255,255,.2);font-family:'Syne',sans-serif;font-size:.7rem;font-weight:700;padding:6px 16px;cursor:pointer;letter-spacing:.1em;transition:all .2s" onmouseover="this.style.borderColor='rgba(255,255,255,.3)';this.style.color='rgba(255,255,255,.4)'" onmouseout="this.style.borderColor='rgba(255,255,255,.1)';this.style.color='rgba(255,255,255,.2)'">⚙ DEV</button>
+      </div>
     </div>
   </div>
 </div>
@@ -594,6 +657,7 @@
 
     <!-- Subject transition screen -->
     <div id="phase-transition" style="display:none">
+      <div id="congrats-banner-slot"></div>
       <div class="subj-transition">
         <div class="st-icon" id="st-icon">🔬</div>
         <h3 id="st-title">Up Next: Science</h3>
@@ -702,7 +766,7 @@
     <div id="cert-unlock-area"></div>
 
     <div class="results-actions">
-      <button class="btn btn-primary" id="btn-view-cert" onclick="showCertificate()" style="display:none">🏅 View Certificate</button>
+      <button class="btn btn-primary" id="btn-view-cert" onclick="goToFeedback()" style="display:none">🏅 Claim Certificate →</button>
       <button class="btn btn-ghost" onclick="startGame()">🔄 Try Again</button>
       <button class="btn btn-ghost" onclick="goHome()">🏠 Home</button>
     </div>
@@ -710,7 +774,72 @@
 </div>
 
 <!-- ============================================================
-     PAGE: CERTIFICATE (with embedded feedback)
+     PAGE: FEEDBACK (must be completed before certificate)
+============================================================ -->
+<div id="page-feedback" class="page">
+  <div class="container">
+    <div class="feedback-page-header">
+      <h1>💬 Share Your Feedback</h1>
+      <p>Tell us what you think about Mainline! Complete the form to unlock your certificate.</p>
+      <div class="cert-teaser">🎓 Your certificate is waiting — just one step away!</div>
+    </div>
+
+    <div class="feedback-section">
+      <div id="feedback-form-state">
+        <div class="fb-name-row">
+          <label class="feedback-label">👤 Your Name (also appears on certificate)</label>
+          <input class="feedback-input" type="text" id="fb-name" placeholder="Enter your name…" maxlength="60"
+                 oninput="updateCertName(this.value)" />
+        </div>
+
+        <div class="feedback-q-block">
+          <div class="feedback-q-text">1. How would you rate your overall experience with Mainline?</div>
+          <div class="star-row" id="fb-rating-row">
+            <button class="star-btn" onclick="selectStar(1)" data-val="1">⭐ <span>1</span></button>
+            <button class="star-btn" onclick="selectStar(2)" data-val="2">⭐ <span>2</span></button>
+            <button class="star-btn" onclick="selectStar(3)" data-val="3">⭐ <span>3</span></button>
+            <button class="star-btn" onclick="selectStar(4)" data-val="4">⭐ <span>4</span></button>
+            <button class="star-btn" onclick="selectStar(5)" data-val="5">⭐ <span>5</span></button>
+          </div>
+        </div>
+
+        <div class="feedback-q-block">
+          <div class="feedback-q-text">2. How do you feel after completing Mainline?</div>
+          <div class="emoji-row" id="fb-feel-row">
+            <button class="emoji-btn" onclick="selectFeel('excited')" data-val="excited">🤩<span class="emoji-label">Excited</span></button>
+            <button class="emoji-btn" onclick="selectFeel('happy')" data-val="happy">😊<span class="emoji-label">Happy</span></button>
+            <button class="emoji-btn" onclick="selectFeel('neutral')" data-val="neutral">😐<span class="emoji-label">Neutral</span></button>
+            <button class="emoji-btn" onclick="selectFeel('challenged')" data-val="challenged">🤔<span class="emoji-label">Challenged</span></button>
+            <button class="emoji-btn" onclick="selectFeel('frustrated')" data-val="frustrated">😤<span class="emoji-label">Frustrated</span></button>
+          </div>
+        </div>
+
+        <div class="feedback-q-block">
+          <div class="feedback-q-text">3. Would you recommend Mainline to a friend or classmate?</div>
+          <div class="option-row" id="fb-rec-row">
+            <button class="option-btn" onclick="selectRec('definitely')" data-val="definitely"><span class="opt-dot"></span> Yes, definitely! I'd recommend it right away.</button>
+            <button class="option-btn" onclick="selectRec('probably')" data-val="probably"><span class="opt-dot"></span> Probably yes — it's pretty good.</button>
+            <button class="option-btn" onclick="selectRec('unsure')" data-val="unsure"><span class="opt-dot"></span> I'm not sure yet.</button>
+            <button class="option-btn" onclick="selectRec('no')" data-val="no"><span class="opt-dot"></span> No, not really.</button>
+          </div>
+        </div>
+
+        <p class="feedback-error" id="fb-error">⚠️ Please enter your name and answer all three questions.</p>
+        <div style="text-align:center;margin-top:20px">
+          <button class="btn btn-primary" onclick="submitFeedback()">✅ Submit & View Certificate 🎓</button>
+        </div>
+      </div>
+    </div>
+
+    <div style="text-align:center;padding-bottom:40px;display:flex;gap:14px;justify-content:center;flex-wrap:wrap;">
+      <button class="btn btn-ghost" onclick="startGame()">🔄 Play Again</button>
+      <button class="btn btn-ghost" onclick="goHome()">🏠 Home</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     PAGE: CERTIFICATE
 ============================================================ -->
 <div id="page-certificate" class="page">
   <div class="container">
@@ -760,63 +889,12 @@
       </div>
     </div>
 
-    <!-- ── FEEDBACK embedded on same page ── -->
+    <!-- Thank you feedback confirmation on cert page -->
     <div class="feedback-section">
-      <h3>💬 Share Your Feedback</h3>
-      <p>Tell us what you think about Mainline! Your input helps us improve.</p>
-
-      <div id="feedback-form-state">
-        <div class="fb-name-row">
-          <label class="feedback-label">👤 Your Name (also appears on certificate)</label>
-          <input class="feedback-input" type="text" id="fb-name" placeholder="Enter your name…" maxlength="60"
-                 oninput="updateCertName(this.value)" />
-        </div>
-
-        <div class="feedback-q-block">
-          <div class="feedback-q-text">1. How would you rate your overall experience with Mainline?</div>
-          <div class="star-row" id="fb-rating-row">
-            <button class="star-btn" onclick="selectStar(1)" data-val="1">⭐ <span>1</span></button>
-            <button class="star-btn" onclick="selectStar(2)" data-val="2">⭐ <span>2</span></button>
-            <button class="star-btn" onclick="selectStar(3)" data-val="3">⭐ <span>3</span></button>
-            <button class="star-btn" onclick="selectStar(4)" data-val="4">⭐ <span>4</span></button>
-            <button class="star-btn" onclick="selectStar(5)" data-val="5">⭐ <span>5</span></button>
-          </div>
-        </div>
-
-        <div class="feedback-q-block">
-          <div class="feedback-q-text">2. How do you feel after completing Mainline?</div>
-          <div class="emoji-row" id="fb-feel-row">
-            <button class="emoji-btn" onclick="selectFeel('excited')" data-val="excited">🤩<span class="emoji-label">Excited</span></button>
-            <button class="emoji-btn" onclick="selectFeel('happy')" data-val="happy">😊<span class="emoji-label">Happy</span></button>
-            <button class="emoji-btn" onclick="selectFeel('neutral')" data-val="neutral">😐<span class="emoji-label">Neutral</span></button>
-            <button class="emoji-btn" onclick="selectFeel('challenged')" data-val="challenged">🤔<span class="emoji-label">Challenged</span></button>
-            <button class="emoji-btn" onclick="selectFeel('frustrated')" data-val="frustrated">😤<span class="emoji-label">Frustrated</span></button>
-          </div>
-        </div>
-
-        <div class="feedback-q-block">
-          <div class="feedback-q-text">3. Would you recommend Mainline to a friend or classmate?</div>
-          <div class="option-row" id="fb-rec-row">
-            <button class="option-btn" onclick="selectRec('definitely')" data-val="definitely"><span class="opt-dot"></span> Yes, definitely! I'd recommend it right away.</button>
-            <button class="option-btn" onclick="selectRec('probably')" data-val="probably"><span class="opt-dot"></span> Probably yes — it's pretty good.</button>
-            <button class="option-btn" onclick="selectRec('unsure')" data-val="unsure"><span class="opt-dot"></span> I'm not sure yet.</button>
-            <button class="option-btn" onclick="selectRec('no')" data-val="no"><span class="opt-dot"></span> No, not really.</button>
-          </div>
-        </div>
-
-        <p class="feedback-error" id="fb-error">⚠️ Please enter your name and answer all three questions.</p>
-        <div style="text-align:center;margin-top:20px">
-          <button class="btn btn-primary" onclick="submitFeedback()">✅ Submit Feedback</button>
-        </div>
-      </div>
-
-      <!-- Thank you state -->
-      <div id="feedback-thankyou-state" style="display:none">
-        <div class="feedback-thankyou">
-          <div class="ty-icon">🎉</div>
-          <h3>Thank You, <span id="ty-name">Champion</span>!</h3>
-          <p>Your feedback has been received. We appreciate you sharing your thoughts on Mainline!</p>
-        </div>
+      <div class="feedback-thankyou">
+        <div class="ty-icon">🎉</div>
+        <h3>Thank You, <span id="ty-name">Champion</span>!</h3>
+        <p>Your feedback has been received. We appreciate you sharing your thoughts on Mainline!</p>
       </div>
     </div>
 
@@ -1315,22 +1393,76 @@ function nextRound() {
   const isLastInSubject = state.paraIndex === 4;
 
   if (isLastPara) {
-    showResults();
+    // Check if last subject (English) was passed perfectly
+    const subjKey = currentSubjectKey();
+    const subjScore = state.subjectScores[subjKey];
+    const currentSubj = SUBJECTS[state.subjectIndex];
+    if (subjScore === 15) {
+      // Show final congrats overlay before results
+      const overlay = document.createElement('div');
+      overlay.className = 'congrats-overlay';
+      overlay.id = 'final-congrats-overlay';
+      overlay.innerHTML = `
+        <div class="congrats-box">
+          <span class="cong-icon">🏆</span>
+          <h2>PERFECT GAME!</h2>
+          <div class="cong-subj">${currentSubj.icon} ${currentSubj.label} — Final Subject</div>
+          <div class="cong-score">15/15 ⭐⭐⭐</div>
+          <p>Flawless! You've achieved a PERFECT SCORE across all 4 subjects! Your certificate awaits!</p>
+          <button class="btn-continue-next" onclick="document.getElementById('final-congrats-overlay').remove();showResults()">See My Results 🎓</button>
+        </div>`;
+      document.body.appendChild(overlay);
+    } else {
+      showResults();
+    }
     return;
   }
 
   if (isLastInSubject) {
-    // Move to next subject — show transition screen
+    // Check if player passed current subject (need 9/15 = 60%)
+    const subjKey = currentSubjectKey();
+    const subjScore = state.subjectScores[subjKey];
+    const passed = subjScore === 15;
+
     clearInterval(state.timer);
     const nextSubjIndex = state.subjectIndex + 1;
     const nextSubj = SUBJECTS[nextSubjIndex];
+    const currentSubj = SUBJECTS[state.subjectIndex];
+
     document.getElementById('phase-read').style.display = 'none';
     document.getElementById('phase-answer').style.display = 'none';
     document.getElementById('phase-transition').style.display = 'block';
-    document.getElementById('st-icon').textContent  = nextSubj.icon;
-    document.getElementById('st-title').textContent = `Up Next: ${nextSubj.label}`;
-    document.getElementById('st-desc').textContent  = `You've completed ${SUBJECTS[state.subjectIndex].label}! Get ready for ${nextSubj.label}.`;
-    state.waitingTransition = true;
+
+    const congratsSlot = document.getElementById('congrats-banner-slot');
+
+    if (passed) {
+      // Show congrats and allow continuing
+      congratsSlot.innerHTML = `
+        <div class="congrats-banner">
+          <div class="cb-icon">🎉</div>
+          <h4>🌟 Perfect Score! You crushed ${currentSubj.icon} ${currentSubj.label}!</h4>
+          <p>You scored a flawless <strong style="color:var(--accent3)">15/15</strong> ⭐⭐⭐ — Amazing work! You've unlocked the next subject!</p>
+        </div>`;
+
+      document.getElementById('st-icon').textContent  = nextSubj.icon;
+      document.getElementById('st-title').textContent = `Up Next: ${nextSubj.label}`;
+      document.getElementById('st-desc').textContent  = `Ready to tackle ${nextSubj.label}? You've got this!`;
+      document.querySelector('#phase-transition .next-wrap').innerHTML =
+        `<button class="btn btn-primary" onclick="continueAfterTransition()">Continue to ${nextSubj.label} →</button>`;
+    } else {
+      // Failed — locked
+      const needed = 15 - subjScore;
+      congratsSlot.innerHTML = '';
+      document.getElementById('st-icon').textContent  = '🔒';
+      document.getElementById('st-title').textContent = `${nextSubj.label} is Locked`;
+      document.getElementById('st-desc').textContent  = `You scored ${subjScore}/15 on ${currentSubj.label}. You need a PERFECT 15/15 to unlock the next subject. You missed ${needed} question${needed !== 1 ? 's' : ''}!`;
+      document.querySelector('#phase-transition .next-wrap').innerHTML = `
+        <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+          <button class="btn btn-primary" onclick="retrySubject()">🔄 Retry ${currentSubj.label}</button>
+          <button class="btn btn-ghost" onclick="goHome()">🏠 Home</button>
+        </div>`;
+    }
+    state.waitingTransition = passed;
   } else {
     state.paraIndex++;
     loadRound();
@@ -1342,6 +1474,25 @@ function continueAfterTransition() {
   state.waitingTransition = false;
   state.subjectIndex++;
   state.paraIndex = 0;
+  loadRound();
+}
+
+function retrySubject() {
+  clearInterval(state.timer);
+  // Reset current subject score and go back to first paragraph of this subject
+  const subjKey = currentSubjectKey();
+  const subjectQTotal = PARA_PER_SUBJ * Q_PER_PARA;
+  // Subtract this subject's score from totals
+  const subjScore = state.subjectScores[subjKey];
+  state.score    -= subjScore;
+  state.correct  -= subjScore;
+  state.answered -= subjectQTotal;
+  state.wrong    -= (subjectQTotal - subjScore);
+  // Reset subject
+  state.subjectScores[subjKey] = 0;
+  state.paraIndex = 0;
+  document.getElementById('phase-transition').style.display = 'none';
+  state.waitingTransition = false;
   loadRound();
 }
 
@@ -1440,6 +1591,10 @@ function showResults() {
 /* ================================================================
    CERTIFICATE
 ================================================================ */
+function goToFeedback() {
+  showCertificate();
+}
+
 function showCertificate() {
   // Reset feedback form
   state.fbRating = null; state.fbFeel = null; state.fbRec = null;
@@ -1448,22 +1603,15 @@ function showCertificate() {
   document.querySelectorAll('.emoji-btn').forEach(b => b.classList.remove('selected'));
   document.querySelectorAll('.option-btn').forEach(b => b.classList.remove('selected'));
   document.getElementById('fb-error').style.display = 'none';
-  document.getElementById('feedback-form-state').style.display = 'block';
-  document.getElementById('feedback-thankyou-state').style.display = 'none';
 
-  // Certificate meta
-  document.getElementById('cert-player-name').textContent = 'Champion';
-  document.getElementById('cert-attempt-num').textContent = stats.attempts;
-  const now = new Date();
-  document.getElementById('cert-date').textContent = 'Issued on ' + now.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-
-  showPage('certificate');
+  showPage('feedback');
 }
 
 /* Update certificate name live as user types */
 function updateCertName(val) {
   const name = val.trim();
-  document.getElementById('cert-player-name').textContent = name || 'Champion';
+  const el = document.getElementById('cert-player-name');
+  if (el) el.textContent = name || 'Champion';
 }
 
 /* ================================================================
@@ -1491,10 +1639,15 @@ function submitFeedback() {
     return;
   }
   errEl.style.display = 'none';
+
+  // Set certificate meta
   document.getElementById('cert-player-name').textContent = name;
-  document.getElementById('feedback-form-state').style.display = 'none';
-  document.getElementById('feedback-thankyou-state').style.display = 'block';
   document.getElementById('ty-name').textContent = name;
+  document.getElementById('cert-attempt-num').textContent = stats.attempts;
+  const now = new Date();
+  document.getElementById('cert-date').textContent = 'Issued on ' + now.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+
+  showPage('certificate');
   window.scrollTo(0, 0);
 }
 
@@ -1512,8 +1665,51 @@ function updateAttemptsUI() {
 }
 
 /* ================================================================
-   NAVIGATION
+   DEVELOPER ACCESS
 ================================================================ */
+function devAccess() {
+  const overlay = document.createElement('div');
+  overlay.className = 'overlay';
+  overlay.id = 'dev-overlay';
+  overlay.innerHTML = `
+    <div class="overlay-box">
+      <h2>🔐 Developer Access</h2>
+      <p>Enter the developer password to skip to the certificate page.</p>
+      <input id="dev-pw-input" type="password" placeholder="Password…"
+        style="width:100%;background:var(--surface);border:2px solid var(--border);border-radius:12px;padding:12px 16px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:1rem;outline:none;margin-bottom:10px;box-sizing:border-box;"
+        onkeydown="if(event.key==='Enter')devSubmit()"
+      />
+      <div id="dev-error" style="color:var(--accent2);font-size:.82rem;margin-bottom:12px;display:none">❌ Wrong password.</div>
+      <div class="overlay-actions">
+        <button class="btn btn-ghost" onclick="document.getElementById('dev-overlay').remove()">Cancel</button>
+        <button class="btn btn-primary" onclick="devSubmit()">Enter</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  setTimeout(() => document.getElementById('dev-pw-input').focus(), 100);
+}
+
+function devSubmit() {
+  const val = document.getElementById('dev-pw-input').value;
+  if (val === 'ictmalakas') {
+    document.getElementById('dev-overlay').remove();
+    // Populate certificate with dev placeholder
+    document.getElementById('cert-player-name').textContent = 'Developer';
+    document.getElementById('ty-name').textContent = 'Developer';
+    document.getElementById('cert-attempt-num').textContent = '—';
+    const now = new Date();
+    document.getElementById('cert-date').textContent = 'Issued on ' + now.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+    showPage('certificate');
+    window.scrollTo(0, 0);
+  } else {
+    const err = document.getElementById('dev-error');
+    err.style.display = 'block';
+    document.getElementById('dev-pw-input').value = '';
+    document.getElementById('dev-pw-input').focus();
+  }
+}
+
+
 function goHome() {
   clearInterval(state.timer);
   updateAttemptsUI();
